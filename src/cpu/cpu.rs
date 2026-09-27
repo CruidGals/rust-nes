@@ -36,7 +36,7 @@ impl CPU {
             y: 0,
             pc: 0xFFFC,
             sp: 0xFD,
-            p: StatusRegister::default()
+            p: StatusRegister::empty()
         }
     }
 }
