@@ -2,6 +2,7 @@
  * Bus speciically to connect CPU components
  */
 
+#[derive(Debug)]
 pub struct CPUBus {
     // For now, just include reference to CPU VRAM
     vram: [u8; 2048] // 2KB of internal vram
