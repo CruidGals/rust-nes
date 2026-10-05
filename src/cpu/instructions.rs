@@ -108,10 +108,13 @@ where
 
 ///
 /// Performs write operations for absolute addressing.
+/// Operation returns the value of the register (STA, STX, ...)
 /// 
-fn absolute_addr_w() -> impl Fn(&mut CPU, u8) -> Result<(), String> 
+fn absolute_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+where
+    F: Fn(&mut CPU) -> u8
 {
-    move |cpu, register| {
+    move |cpu| {
         match cpu.cycle_step {
             2 => {
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
@@ -129,6 +132,7 @@ fn absolute_addr_w() -> impl Fn(&mut CPU, u8) -> Result<(), String>
             }
             4 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                let register = operation(cpu);
                 cpu.bus.write(cpu.target_addr, register)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
                 cpu.finish_instruction();
@@ -217,9 +221,11 @@ where
 ///
 /// Performs write operations for zero-page addressing.
 /// 
-fn zero_page_addr_w() -> impl Fn(&mut CPU, u8) -> Result<(), String> 
+fn zero_page_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU) -> u8
 {
-    move |cpu, register| {
+    move |cpu| {
         match cpu.cycle_step {
             2 => {
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
@@ -229,7 +235,265 @@ fn zero_page_addr_w() -> impl Fn(&mut CPU, u8) -> Result<(), String>
                 Ok(())
             }
             3 => {
+                let register = operation(cpu);
                 cpu.bus.write(u16::from(cpu.low_buffer), register)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+// ------------------------------------------------------------------
+// ZERO-PAGE INDEXED X ADDRESSING
+
+///
+/// Performs read operations for zero-page indexed x addressing.
+/// 
+fn zero_page_indexed_x_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU, u8) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                cpu.low_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                // Dummy Read
+                cpu.bus.read(u16::from(cpu.low_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.x));
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                let value = cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                operation(cpu, value);
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+///
+/// Performs read/modify/write operations for zero-page indexed x addressing.
+/// Functions using this must operate on cpu.alu_buffer
+/// 
+fn zero_page_indexed_x_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                cpu.low_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                // Dummy Read
+                cpu.bus.read(u16::from(cpu.low_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.x));
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                Ok(())
+            }
+            5 => {
+                // Peform the dummy write first
+                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+
+                operation(cpu);
+                cpu.step_cycle();
+                Ok(())
+            }
+            6 => {
+                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+///
+/// Performs write operations for zero-page indexed x addressing.
+/// 
+fn zero_page_indexed_x_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU) -> u8
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                cpu.low_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                // Dummy Read
+                cpu.bus.read(u16::from(cpu.low_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.x));
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                let register = operation(cpu);
+                cpu.bus.write(cpu.target_addr, register)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+// ------------------------------------------------------------------
+// ZERO-PAGE INDEXED Y ADDRESSING
+
+///
+/// Performs read operations for zero-page indexed y addressing.
+/// 
+fn zero_page_indexed_y_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU, u8) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                cpu.low_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                // Dummy Read
+                cpu.bus.read(u16::from(cpu.low_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.y));
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                let value = cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                operation(cpu, value);
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+///
+/// Performs read/modify/write operations for zero-page indexed y addressing.
+/// Functions using this must operate on cpu.alu_buffer
+/// 
+fn zero_page_indexed_y_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                cpu.low_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                // Dummy Read
+                cpu.bus.read(u16::from(cpu.low_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.y));
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                Ok(())
+            }
+            5 => {
+                // Peform the dummy write first
+                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+
+                operation(cpu);
+                cpu.step_cycle();
+                Ok(())
+            }
+            6 => {
+                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+///
+/// Performs write operations for zero-page indexed y addressing.
+/// 
+fn zero_page_indexed_y_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU) -> u8
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                cpu.low_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                // Dummy Read
+                cpu.bus.read(u16::from(cpu.low_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.y));
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                let register = operation(cpu);
+                cpu.bus.write(cpu.target_addr, register)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
                 cpu.finish_instruction();
                 Ok(())
