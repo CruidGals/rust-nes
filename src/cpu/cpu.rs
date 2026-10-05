@@ -32,6 +32,7 @@ pub struct CPU<'bus> {
     pub cycle_step: u8, /* cycle that opcode is on */
     pub low_buffer: u8, /* low read buffer when grabbing value */
     pub high_buffer: u8, /* high read buffer when grabbing value */
+    pub page_boundary_cross: bool, /* checks if crossed page boundary */
     pub target_addr: u16, /* store addr for later use during write instructions */
     pub alu_buffer: u8, /* buffer used to perform ops with ALU */
 
@@ -53,6 +54,7 @@ impl<'bus> CPU<'bus> {
             cycle_step: 0,
             low_buffer: 0,
             high_buffer: 0,
+            page_boundary_cross: false,
             target_addr: 0,
             alu_buffer: 0,
 
@@ -77,7 +79,9 @@ impl<'bus> CPU<'bus> {
         self.cycle_step = 0;
         self.low_buffer = 0;
         self.high_buffer = 0;
+        self.page_boundary_cross = false;
         self.target_addr = 0;
         self.alu_buffer = 0;
     }
+
 }
