@@ -852,3 +852,371 @@ where
         }
     }
 }
+
+// ------------------------------------------------------------------
+// INDEXED INDIRECT ADDRESSING
+
+///
+/// Performs read operations for indexed indirect addressing.
+/// 
+fn indexed_indirect_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU, u8) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                // Read pointer into buffer
+                cpu.alu_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                // Dummy Read
+                cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.alu_buffer = cpu.alu_buffer.wrapping_add(cpu.x);
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
+                cpu.step_cycle();
+                Ok(())
+            }
+            5 => {
+                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                Ok(())
+            }
+            6 => {
+                cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                let value = cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                operation(cpu, value);
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+///
+/// Performs read/modify/write operations for indexed indirect addressing.
+/// Functions using this must operate on cpu.alu_buffer
+/// 
+fn indexed_indirect_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                // Read pointer into buffer
+                cpu.alu_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                // Dummy Read
+                cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.alu_buffer = cpu.alu_buffer.wrapping_add(cpu.x);
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
+                cpu.step_cycle();
+                Ok(())
+            }
+            5 => {
+                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                Ok(())
+            }
+            6 => {
+                cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                Ok(())
+            }
+            7 => {
+                // Peform the dummy write first
+                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+
+                operation(cpu);
+                cpu.step_cycle();
+                Ok(())
+            }
+            8 => {
+                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+///
+/// Performs write operations for indexed indirect addressing.
+/// 
+fn indexed_indirect_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU) -> u8
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                // Read pointer into buffer
+                cpu.alu_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                // Dummy Read
+                cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.alu_buffer = cpu.alu_buffer.wrapping_add(cpu.x);
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
+                cpu.step_cycle();
+                Ok(())
+            }
+            5 => {
+                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                Ok(())
+            }
+            6 => {
+                cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                let register = operation(cpu);
+                cpu.bus.write(cpu.target_addr, register)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+// ------------------------------------------------------------------
+// INDIRECT INDEXED ADDRESSING
+
+///
+/// Performs read operations for indirect indexed addressing.
+/// 
+fn indirect_indexed_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU, u8) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                // Read pointer into buffer
+                cpu.alu_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
+                cpu.step_cycle();
+                Ok(())
+            }
+            5 => {
+                cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                let value = cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                
+                // If page boundary cross, overflow and re-read later
+                if cpu.page_boundary_cross {
+                    cpu.high_buffer = cpu.high_buffer.wrapping_add(1);
+                    cpu.step_cycle();
+                } else {
+                    operation(cpu, value);
+                    cpu.finish_instruction();
+                }
+
+                Ok(())
+            }
+            6 => {
+                cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                let value = cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                operation(cpu, value);
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+///
+/// Performs read/modify/write operations for indirect indexed addressing.
+/// Functions using this must operate on cpu.alu_buffer
+/// 
+fn indirect_indexed_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                // Read pointer into buffer
+                cpu.alu_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
+                cpu.step_cycle();
+                Ok(())
+            }
+            5 => {
+                // Dummy read
+                cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+
+                // If page boundary cross, fix high byte and read later
+                if cpu.page_boundary_cross {
+                    cpu.high_buffer = cpu.high_buffer.wrapping_add(1);
+                }
+
+                cpu.step_cycle();
+                Ok(())
+            }
+            6 => {
+                cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                Ok(())
+            }
+            7 => {
+                // Peform the dummy write first
+                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+
+                operation(cpu);
+                cpu.step_cycle();
+                Ok(())
+            }
+            8 => {
+                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+///
+/// Performs write operations for indirect indexed addressing.
+/// 
+fn indirect_indexed_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+where 
+    F: Fn(&mut CPU) -> u8
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                // Read pointer into buffer
+                cpu.alu_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.step_cycle();
+                cpu.pc += 1;
+                Ok(())
+            }
+            3 => {
+                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
+                cpu.step_cycle();
+                Ok(())
+            }
+            4 => {
+                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
+                cpu.step_cycle();
+                Ok(())
+            }
+            5 => {
+                // Dummy read
+                cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                cpu.bus.read(cpu.target_addr)
+                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+
+                // If page boundary cross, fix high byte and read later
+                if cpu.page_boundary_cross {
+                    cpu.high_buffer = cpu.high_buffer.wrapping_add(1);
+                }
+
+                cpu.step_cycle();
+                Ok(())
+            }
+            6 => {
+                cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
+                let register = operation(cpu);
+                cpu.bus.write(cpu.target_addr, register)
+                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
