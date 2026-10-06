@@ -28,7 +28,7 @@ pub struct CPU<'bus> {
     pub p: StatusRegister, /* Status register */
 
     /* Instruction specific */
-    curr_opcode: u8,  /* opcode that is being done */
+    pub curr_opcode: u8,  /* opcode that is being done */
     pub cycle_step: u8, /* cycle that opcode is on */
     pub low_buffer: u8, /* low read buffer when grabbing value */
     pub high_buffer: u8, /* high read buffer when grabbing value */

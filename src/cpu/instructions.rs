@@ -1220,3 +1220,110 @@ where
         }
     }
 }
+
+// ------------------------------------------------------------------
+// IMMEDIATE ADDRESSING
+
+///
+/// Performs read operation with immediate addressing
+/// 
+fn immediate_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+where 
+    F: Fn(&mut CPU, u8) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                let value = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                operation(cpu, value);
+                cpu.pc += 1;
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+// ------------------------------------------------------------------
+// ACCUMULATOR / IMPLIED ADDRESSING
+
+///
+/// Performs read operation with accumulator/implied addressing
+/// 
+fn accumulator_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+where 
+    F: Fn(&mut CPU) -> ()
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                operation(cpu);
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+// ------------------------------------------------------------------
+// RELATIVE ADDRESSING
+
+///
+/// Performs branch operations with relative addressing
+/// 
+fn relative_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+where 
+    F: Fn(&mut CPU) -> bool
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                cpu.low_buffer = cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.pc += 1;
+                
+                // Check if branched
+                if operation(cpu) {
+                    cpu.step_cycle();
+                } else {
+                    cpu.finish_instruction();
+                }
+
+                Ok(())
+            }
+            3 => {
+                // Dummy read
+                cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                let offset = cpu.low_buffer as i8 as u16;
+                let target_pc = cpu.pc.wrapping_add(offset);
+                cpu.page_boundary_cross = (cpu.pc & 0xFF00) != (target_pc & 0xFF00);
+                cpu.pc = (cpu.pc & 0xFF00) | (target_pc & 0x00FF);
+
+                if cpu.page_boundary_cross {
+                    cpu.high_buffer = (target_pc >> 8) as u8;
+                    cpu.step_cycle();
+                } else {
+                    cpu.finish_instruction();
+                }
+                Ok(())
+            }
+            4 => {
+                // Dummy read
+                cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+                cpu.pc = (cpu.pc & 0x00FF) | (u16::from(cpu.high_buffer) << 8);
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
