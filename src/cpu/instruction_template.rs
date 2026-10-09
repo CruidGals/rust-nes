@@ -1,5 +1,5 @@
 /***
- * Related instructions for the CPU
+ * Related generic instruction implementations for the CPU
  */
 
 use std::fmt::format;
@@ -22,7 +22,7 @@ use super::cpu::CPU;
 ///
 /// Performs read operations for absolute addressing.
 /// 
-fn absolute_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn absolute_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU, u8) -> ()
 {
@@ -59,7 +59,7 @@ where
 /// Performs read/modify/write operations for absolute addressing.
 /// Functions using this must operate on cpu.alu_buffer
 /// 
-fn absolute_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn absolute_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> ()
 {
@@ -110,7 +110,7 @@ where
 /// Performs write operations for absolute addressing.
 /// Operation returns the value of the register (STA, STX, ...)
 /// 
-fn absolute_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+pub(super) fn absolute_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
 where
     F: Fn(&mut CPU) -> u8
 {
@@ -149,7 +149,7 @@ where
 ///
 /// Performs read operations for zero-page addressing.
 /// 
-fn zero_page_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn zero_page_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU, u8) -> ()
 {
@@ -178,7 +178,7 @@ where
 /// Performs read/modify/write operations for zero-page addressing.
 /// Functions using this must operate on cpu.alu_buffer
 /// 
-fn zero_page_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn zero_page_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> ()
 {
@@ -221,7 +221,7 @@ where
 ///
 /// Performs write operations for zero-page addressing.
 /// 
-fn zero_page_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn zero_page_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> u8
 {
@@ -251,7 +251,7 @@ where
 ///
 /// Performs read operations for zero-page indexed x addressing.
 /// 
-fn zero_page_indexed_x_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn zero_page_indexed_x_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU, u8) -> ()
 {
@@ -289,7 +289,7 @@ where
 /// Performs read/modify/write operations for zero-page indexed x addressing.
 /// Functions using this must operate on cpu.alu_buffer
 /// 
-fn zero_page_indexed_x_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn zero_page_indexed_x_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> ()
 {
@@ -340,7 +340,7 @@ where
 ///
 /// Performs write operations for zero-page indexed x addressing.
 /// 
-fn zero_page_indexed_x_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn zero_page_indexed_x_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> u8
 {
@@ -380,7 +380,7 @@ where
 ///
 /// Performs read operations for zero-page indexed y addressing.
 /// 
-fn zero_page_indexed_y_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn zero_page_indexed_y_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU, u8) -> ()
 {
@@ -418,7 +418,7 @@ where
 /// Performs read/modify/write operations for zero-page indexed y addressing.
 /// Functions using this must operate on cpu.alu_buffer
 /// 
-fn zero_page_indexed_y_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn zero_page_indexed_y_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> ()
 {
@@ -469,7 +469,7 @@ where
 ///
 /// Performs write operations for zero-page indexed y addressing.
 /// 
-fn zero_page_indexed_y_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn zero_page_indexed_y_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> u8
 {
@@ -509,7 +509,7 @@ where
 ///
 /// Performs read operations for absolute indexed X addressing.
 /// 
-fn absolute_indexed_x_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn absolute_indexed_x_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU, u8) -> ()
 {
@@ -564,7 +564,7 @@ where
 /// Performs read/modify/write operations for absolute indexed X addressing.
 /// Functions using this must operate on cpu.alu_buffer
 /// 
-fn absolute_indexed_x_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn absolute_indexed_x_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> ()
 {
@@ -630,7 +630,7 @@ where
 /// Performs write operations for absolute indexed X addressing.
 /// Operation returns the value of the register (STA, STX, ...)
 /// 
-fn absolute_indexed_x_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+pub(super) fn absolute_indexed_x_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
 where
     F: Fn(&mut CPU) -> u8
 {
@@ -684,7 +684,7 @@ where
 ///
 /// Performs read operations for absolute indexed Y addressing.
 /// 
-fn absolute_indexed_y_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn absolute_indexed_y_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU, u8) -> ()
 {
@@ -739,7 +739,7 @@ where
 /// Performs read/modify/write operations for absolute indexed Y addressing.
 /// Functions using this must operate on cpu.alu_buffer
 /// 
-fn absolute_indexed_y_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn absolute_indexed_y_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> ()
 {
@@ -805,7 +805,7 @@ where
 /// Performs write operations for absolute indexed Y addressing.
 /// Operation returns the value of the register (STA, STX, ...)
 /// 
-fn absolute_indexed_y_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+pub(super) fn absolute_indexed_y_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
 where
     F: Fn(&mut CPU) -> u8
 {
@@ -859,7 +859,7 @@ where
 ///
 /// Performs read operations for indexed indirect addressing.
 /// 
-fn indexed_indirect_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn indexed_indirect_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU, u8) -> ()
 {
@@ -912,7 +912,7 @@ where
 /// Performs read/modify/write operations for indexed indirect addressing.
 /// Functions using this must operate on cpu.alu_buffer
 /// 
-fn indexed_indirect_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn indexed_indirect_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> ()
 {
@@ -978,7 +978,7 @@ where
 ///
 /// Performs write operations for indexed indirect addressing.
 /// 
-fn indexed_indirect_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn indexed_indirect_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> u8
 {
@@ -1033,7 +1033,7 @@ where
 ///
 /// Performs read operations for indirect indexed addressing.
 /// 
-fn indirect_indexed_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn indirect_indexed_addr_r<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU, u8) -> ()
 {
@@ -1094,7 +1094,7 @@ where
 /// Performs read/modify/write operations for indirect indexed addressing.
 /// Functions using this must operate on cpu.alu_buffer
 /// 
-fn indirect_indexed_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn indirect_indexed_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> ()
 {
@@ -1166,7 +1166,7 @@ where
 ///
 /// Performs write operations for indirect indexed addressing.
 /// 
-fn indirect_indexed_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
+pub(super) fn indirect_indexed_addr_w<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
     F: Fn(&mut CPU) -> u8
 {
@@ -1227,7 +1227,7 @@ where
 ///
 /// Performs read operation with immediate addressing
 /// 
-fn immediate_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+pub(super) fn immediate_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
 where 
     F: Fn(&mut CPU, u8) -> ()
 {
@@ -1252,7 +1252,7 @@ where
 ///
 /// Performs read operation with accumulator/implied addressing
 /// 
-fn accumulator_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+pub(super) fn accumulator_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
 where 
     F: Fn(&mut CPU) -> ()
 {
@@ -1276,7 +1276,7 @@ where
 ///
 /// Performs branch operations with relative addressing
 /// 
-fn relative_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+pub(super) fn relative_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
 where 
     F: Fn(&mut CPU) -> bool
 {
