@@ -1,3 +1,3 @@
 pub mod cpu;
 pub mod cpubus;
-pub mod instructions;
+pub mod instruction_template;
