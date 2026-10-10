@@ -218,3 +218,34 @@ pub fn ror_op(cpu: &mut CPU, value: u8) -> u8 {
     cpu.set_zn_flags(result);
     result
 }
+
+// ------------------------------------------------------------------
+// TRANSFER INSTRUCTIONS
+
+pub fn tax_op(cpu: &mut CPU) -> () {
+    cpu.x = cpu.a;
+    cpu.set_zn_flags(cpu.x);
+}
+
+pub fn tay_op(cpu: &mut CPU) -> () {
+    cpu.y = cpu.a;
+    cpu.set_zn_flags(cpu.y);
+}
+
+pub fn txa_op(cpu: &mut CPU) -> () {
+    cpu.a = cpu.x;
+    cpu.set_zn_flags(cpu.a);
+}
+
+pub fn tya_op(cpu: &mut CPU) -> () {
+    cpu.a = cpu.y;
+    cpu.set_zn_flags(cpu.a);
+}
+
+pub fn tsx_op(cpu: &mut CPU) -> () {
+    cpu.x = cpu.sp;
+    cpu.set_zn_flags(cpu.x);
+}
+pub fn txs_op(cpu: &mut CPU) -> () {
+    cpu.sp = cpu.x;
+}
