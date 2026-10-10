@@ -249,3 +249,34 @@ pub fn tsx_op(cpu: &mut CPU) -> () {
 pub fn txs_op(cpu: &mut CPU) -> () {
     cpu.sp = cpu.x;
 }
+
+// ------------------------------------------------------------------
+// FLAG INSTRUCTIONS
+
+pub fn clc_op(cpu: &mut CPU) -> () {
+    cpu.p.remove(StatusRegister::CARRY);
+}
+
+pub fn sec_op(cpu: &mut CPU) -> () {
+    cpu.p.set(StatusRegister::CARRY, true);
+}
+
+pub fn cli_op(cpu: &mut CPU) -> () {
+    cpu.p.remove(StatusRegister::INTERRUPT);
+}
+
+pub fn sei_op(cpu: &mut CPU) -> () {
+    cpu.p.set(StatusRegister::INTERRUPT, true);
+}
+
+pub fn cld_op(cpu: &mut CPU) -> () {
+    cpu.p.remove(StatusRegister::DECIMAL);
+}
+
+pub fn sed_op(cpu: &mut CPU) -> () {
+    cpu.p.set(StatusRegister::DECIMAL, true);
+}
+
+pub fn clv_op(cpu: &mut CPU) -> () {
+    cpu.p.remove(StatusRegister::OVERFLOW);
+}
