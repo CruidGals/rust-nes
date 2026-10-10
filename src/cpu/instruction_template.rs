@@ -57,11 +57,10 @@ where
 
 ///
 /// Performs read/modify/write operations for absolute addressing.
-/// Functions using this must operate on cpu.alu_buffer
 /// 
 pub(super) fn absolute_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
-    F: Fn(&mut CPU) -> ()
+    F: Fn(&mut CPU, u8) -> u8
 {
     move |cpu| {
         match cpu.cycle_step {
@@ -91,7 +90,7 @@ where
                 cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
 
-                operation(cpu);
+                cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
@@ -176,11 +175,10 @@ where
 
 ///
 /// Performs read/modify/write operations for zero-page addressing.
-/// Functions using this must operate on cpu.alu_buffer
 /// 
 pub(super) fn zero_page_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
-    F: Fn(&mut CPU) -> ()
+    F: Fn(&mut CPU, u8) -> u8
 {
     move |cpu| {
         match cpu.cycle_step {
@@ -203,7 +201,7 @@ where
                 cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
 
-                operation(cpu);
+                cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
@@ -287,11 +285,10 @@ where
 
 ///
 /// Performs read/modify/write operations for zero-page indexed x addressing.
-/// Functions using this must operate on cpu.alu_buffer
 /// 
 pub(super) fn zero_page_indexed_x_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
-    F: Fn(&mut CPU) -> ()
+    F: Fn(&mut CPU, u8) -> u8
 {
     move |cpu| {
         match cpu.cycle_step {
@@ -322,7 +319,7 @@ where
                 cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
 
-                operation(cpu);
+                cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
@@ -416,11 +413,10 @@ where
 
 ///
 /// Performs read/modify/write operations for zero-page indexed y addressing.
-/// Functions using this must operate on cpu.alu_buffer
 /// 
 pub(super) fn zero_page_indexed_y_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
-    F: Fn(&mut CPU) -> ()
+    F: Fn(&mut CPU, u8) -> u8
 {
     move |cpu| {
         match cpu.cycle_step {
@@ -451,7 +447,7 @@ where
                 cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
 
-                operation(cpu);
+                cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
@@ -562,11 +558,10 @@ where
 
 ///
 /// Performs read/modify/write operations for absolute indexed X addressing.
-/// Functions using this must operate on cpu.alu_buffer
 /// 
 pub(super) fn absolute_indexed_x_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
-    F: Fn(&mut CPU) -> ()
+    F: Fn(&mut CPU, u8) -> u8
 {
     move |cpu| {
         match cpu.cycle_step {
@@ -611,7 +606,7 @@ where
                 cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
 
-                operation(cpu);
+                cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
@@ -737,11 +732,10 @@ where
 
 ///
 /// Performs read/modify/write operations for absolute indexed Y addressing.
-/// Functions using this must operate on cpu.alu_buffer
 /// 
 pub(super) fn absolute_indexed_y_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
-    F: Fn(&mut CPU) -> ()
+    F: Fn(&mut CPU, u8) -> u8
 {
     move |cpu| {
         match cpu.cycle_step {
@@ -786,7 +780,7 @@ where
                 cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
 
-                operation(cpu);
+                cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
@@ -910,11 +904,10 @@ where
 
 ///
 /// Performs read/modify/write operations for indexed indirect addressing.
-/// Functions using this must operate on cpu.alu_buffer
 /// 
 pub(super) fn indexed_indirect_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
-    F: Fn(&mut CPU) -> ()
+    F: Fn(&mut CPU, u8) -> u8
 {
     move |cpu| {
         match cpu.cycle_step {
@@ -960,7 +953,7 @@ where
                 cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
 
-                operation(cpu);
+                cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
@@ -1092,11 +1085,10 @@ where
 
 ///
 /// Performs read/modify/write operations for indirect indexed addressing.
-/// Functions using this must operate on cpu.alu_buffer
 /// 
 pub(super) fn indirect_indexed_addr_rmw<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String> 
 where 
-    F: Fn(&mut CPU) -> ()
+    F: Fn(&mut CPU, u8) -> u8
 {
     move |cpu| {
         match cpu.cycle_step {
@@ -1148,7 +1140,7 @@ where
                 cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
                     .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
 
-                operation(cpu);
+                cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
@@ -1250,9 +1242,27 @@ where
 // ACCUMULATOR / IMPLIED ADDRESSING
 
 ///
-/// Performs read operation with accumulator/implied addressing
+/// Performs read operation with accumulator addressing
 /// 
 pub(super) fn accumulator_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
+where 
+    F: Fn(&mut CPU, u8) -> u8
+{
+    move |cpu| {
+        match cpu.cycle_step {
+            2 => {
+                cpu.bus.read(cpu.pc)
+                    .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+                cpu.a = operation(cpu, cpu.a);
+                cpu.finish_instruction();
+                Ok(())
+            }
+            _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+        }
+    }
+}
+
+pub(super) fn implied_addr<F>(operation: F) -> impl Fn(&mut CPU) -> Result<(), String>
 where 
     F: Fn(&mut CPU) -> ()
 {
