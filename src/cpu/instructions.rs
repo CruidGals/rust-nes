@@ -97,3 +97,31 @@ pub fn dey_op(cpu: &mut CPU) -> () {
     cpu.y = cpu.y.wrapping_sub(1);
     cpu.set_zn_flags(cpu.y);
 }
+
+// ------------------------------------------------------------------
+// BITWISE INSTRUCTIONS
+
+pub fn and_op(cpu: &mut CPU, value: u8) -> () {
+    cpu.a = cpu.a & value;
+    cpu.set_zn_flags(cpu.a);
+}
+
+pub fn ora_op(cpu: &mut CPU, value: u8) -> () {
+    cpu.a = cpu.a | value;
+    cpu.set_zn_flags(cpu.a);
+}
+
+pub fn eor_op(cpu: &mut CPU, value: u8) -> () {
+    cpu.a = cpu.a ^ value;
+    cpu.set_zn_flags(cpu.a);
+}
+
+pub fn bit_op(cpu: &mut CPU, value: u8) -> () {
+    let result = cpu.a & value;
+    
+    // Flags are set a bit weirder here
+    cpu.p.set(StatusRegister::ZERO, result == 0);
+    cpu.p.set(StatusRegister::OVERFLOW, (value & 0x40) != 0);
+    cpu.p.set(StatusRegister::NEGATIVE, (value & 0x80) != 0);
+}
+
