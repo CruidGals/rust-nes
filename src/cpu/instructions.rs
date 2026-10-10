@@ -179,3 +179,42 @@ pub fn bvc_op(cpu: &mut CPU) -> bool {
 pub fn bvs_op(cpu: &mut CPU) -> bool {
     cpu.p.contains(StatusRegister::OVERFLOW)
 }
+
+// ------------------------------------------------------------------
+// SHIFT INSTRUCTIONS
+
+pub fn asl_op(cpu: &mut CPU, value: u8) -> u8 {
+    let result = value << 1;
+    
+    cpu.p.set(StatusRegister::CARRY, (value & 0x80) != 0);
+    cpu.set_zn_flags(result);
+    result
+}
+
+pub fn lsr_op(cpu: &mut CPU, value: u8) -> u8 {
+    let result = value >> 1;
+    
+    cpu.p.set(StatusRegister::CARRY, (value & 0x01) != 0);
+    cpu.set_zn_flags(result);
+    result
+}
+
+pub fn rol_op(cpu: &mut CPU, value: u8) -> u8 {
+    // Rotate value left while moving MSB to LSB
+    let carry = if  cpu.p.contains(StatusRegister::CARRY) { 1 } else { 0 };
+    let result = (value << 1) | carry;
+    
+    cpu.p.set(StatusRegister::CARRY, (value & 0x80) != 0);
+    cpu.set_zn_flags(result);
+    result
+}
+
+pub fn ror_op(cpu: &mut CPU, value: u8) -> u8 {
+    // Rotate value left while moving LSB to MSB
+    let carry = if  cpu.p.contains(StatusRegister::CARRY) { 1 } else { 0 };
+    let result = (value >> 1) | (carry << 7);
+    
+    cpu.p.set(StatusRegister::CARRY, (value & 0x01) != 0);
+    cpu.set_zn_flags(result);
+    result
+}
