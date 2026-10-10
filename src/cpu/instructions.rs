@@ -142,3 +142,38 @@ pub fn cpy_op(cpu: &mut CPU, value: u8) -> () {
     let result = cpu.y - value;
     cpu.set_cmp_flags(cpu.y, result, value);
 }
+
+// ------------------------------------------------------------------
+// BRANCH INSTRUCTIONS
+
+pub fn bcc_op(cpu: &mut CPU) -> bool {
+    !cpu.p.contains(StatusRegister::CARRY)
+}
+
+pub fn bcs_op(cpu: &mut CPU) -> bool {
+    cpu.p.contains(StatusRegister::CARRY)
+}
+
+pub fn bne_op(cpu: &mut CPU) -> bool {
+    !cpu.p.contains(StatusRegister::ZERO)
+}
+
+pub fn beq_op(cpu: &mut CPU) -> bool {
+    cpu.p.contains(StatusRegister::ZERO)
+}
+
+pub fn bpl_op(cpu: &mut CPU) -> bool {
+    !cpu.p.contains(StatusRegister::NEGATIVE)
+}
+
+pub fn bmi_op(cpu: &mut CPU) -> bool {
+    cpu.p.contains(StatusRegister::NEGATIVE)
+}
+
+pub fn bvc_op(cpu: &mut CPU) -> bool {
+    !cpu.p.contains(StatusRegister::OVERFLOW)
+}
+
+pub fn bvs_op(cpu: &mut CPU) -> bool {
+    cpu.p.contains(StatusRegister::OVERFLOW)
+}
