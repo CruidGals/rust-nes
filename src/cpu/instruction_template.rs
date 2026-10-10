@@ -29,23 +29,20 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             4 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
                 cpu.finish_instruction();
                 Ok(())
@@ -65,38 +62,33 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             4 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.target_addr)?;
                 cpu.step_cycle();
                 Ok(())
             }
             5 => {
                 // Peform the dummy write first
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
 
                 cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
             6 => {
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -116,15 +108,13 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
@@ -132,8 +122,7 @@ where
             4 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
-                cpu.bus.write(cpu.target_addr, register)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, register)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -155,15 +144,13 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                let value = cpu.bus.read(u16::from(cpu.low_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(u16::from(cpu.low_buffer))?;
                 operation(cpu, value);
                 cpu.finish_instruction();
                 Ok(())
@@ -183,31 +170,27 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 cpu.target_addr = u16::from(cpu.low_buffer);
-                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.target_addr)?;
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
                 // Peform the dummy write first
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
 
                 cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
             5 => {
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -226,16 +209,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 let register = operation(cpu);
-                cpu.bus.write(u16::from(cpu.low_buffer), register)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(u16::from(cpu.low_buffer), register)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -256,24 +237,21 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Dummy Read
-                cpu.bus.read(u16::from(cpu.low_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(u16::from(cpu.low_buffer))?;
 
                 cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.x));
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
                 cpu.finish_instruction();
                 Ok(())
@@ -293,39 +271,34 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Dummy Read
-                cpu.bus.read(u16::from(cpu.low_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(u16::from(cpu.low_buffer))?;
 
                 cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.x));
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.target_addr)?;
                 cpu.step_cycle();
                 Ok(())
             }
             5 => {
                 // Peform the dummy write first
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
 
                 cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
             6 => {
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -344,16 +317,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Dummy Read
-                cpu.bus.read(u16::from(cpu.low_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(u16::from(cpu.low_buffer))?;
 
                 cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.x));
                 cpu.step_cycle();
@@ -361,8 +332,7 @@ where
             }
             4 => {
                 let register = operation(cpu);
-                cpu.bus.write(cpu.target_addr, register)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, register)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -384,24 +354,21 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Dummy Read
-                cpu.bus.read(u16::from(cpu.low_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(u16::from(cpu.low_buffer))?;
 
                 cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.y));
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
                 cpu.finish_instruction();
                 Ok(())
@@ -421,39 +388,34 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Dummy Read
-                cpu.bus.read(u16::from(cpu.low_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(u16::from(cpu.low_buffer))?;
 
                 cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.y));
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.target_addr)?;
                 cpu.step_cycle();
                 Ok(())
             }
             5 => {
                 // Peform the dummy write first
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
 
                 cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
             6 => {
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -472,16 +434,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Dummy Read
-                cpu.bus.read(u16::from(cpu.low_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(u16::from(cpu.low_buffer))?;
 
                 cpu.target_addr = u16::from(cpu.low_buffer.wrapping_add(cpu.y));
                 cpu.step_cycle();
@@ -489,8 +449,7 @@ where
             }
             4 => {
                 let register = operation(cpu);
-                cpu.bus.write(cpu.target_addr, register)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, register)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -512,16 +471,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Get high buffer while incrementing lower by index
-                cpu.high_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(cpu.pc)?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.x);
                 cpu.step_cycle();
                 cpu.increment_pc();
@@ -529,8 +486,7 @@ where
             }
             4 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 
                 // If page boundary cross, overflow and re-read later
                 if cpu.page_boundary_cross {
@@ -545,8 +501,7 @@ where
             }
             5 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
                 cpu.finish_instruction();
                 Ok(())
@@ -566,15 +521,13 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(cpu.pc)?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.x);
                 cpu.step_cycle();
                 cpu.increment_pc();
@@ -583,8 +536,7 @@ where
             4 => {
                 // Dummy read
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.target_addr)?;
 
                 // If page boundary cross, fix high byte and read later
                 if cpu.page_boundary_cross {
@@ -596,23 +548,20 @@ where
             }
             5 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.target_addr)?;
                 cpu.step_cycle();
                 Ok(())
             }
             6 => {
                 // Peform the dummy write first
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
 
                 cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
             7 => {
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -632,15 +581,13 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(cpu.pc)?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.x);
                 cpu.step_cycle();
                 cpu.increment_pc();
@@ -649,8 +596,7 @@ where
             4 => {
                 // Dummy read
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.target_addr)?;
 
                 // If page boundary cross, fix high byte and read later
                 if cpu.page_boundary_cross {
@@ -663,8 +609,7 @@ where
             5 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
-                cpu.bus.write(cpu.target_addr, register)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, register)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -686,16 +631,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Get high buffer while incrementing lower by index
-                cpu.high_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(cpu.pc)?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
                 cpu.increment_pc();
@@ -703,8 +646,7 @@ where
             }
             4 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 
                 // If page boundary cross, overflow and re-read later
                 if cpu.page_boundary_cross {
@@ -719,8 +661,7 @@ where
             }
             5 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
                 cpu.finish_instruction();
                 Ok(())
@@ -740,15 +681,13 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(cpu.pc)?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
                 cpu.increment_pc();
@@ -757,8 +696,7 @@ where
             4 => {
                 // Dummy read
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.target_addr)?;
 
                 // If page boundary cross, fix high byte and read later
                 if cpu.page_boundary_cross {
@@ -770,23 +708,20 @@ where
             }
             5 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.target_addr)?;
                 cpu.step_cycle();
                 Ok(())
             }
             6 => {
                 // Peform the dummy write first
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
 
                 cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
             7 => {
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -806,15 +741,13 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(cpu.pc)?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
                 cpu.increment_pc();
@@ -823,8 +756,7 @@ where
             4 => {
                 // Dummy read
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.target_addr)?;
 
                 // If page boundary cross, fix high byte and read later
                 if cpu.page_boundary_cross {
@@ -837,8 +769,7 @@ where
             5 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
-                cpu.bus.write(cpu.target_addr, register)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, register)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -861,38 +792,33 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Dummy Read
-                cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(u16::from(cpu.alu_buffer))?;
 
                 cpu.alu_buffer = cpu.alu_buffer.wrapping_add(cpu.x);
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
                 cpu.step_cycle();
                 Ok(())
             }
             5 => {
-                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 cpu.step_cycle();
                 Ok(())
             }
             6 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
                 cpu.finish_instruction();
                 Ok(())
@@ -913,53 +839,46 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Dummy Read
-                cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(u16::from(cpu.alu_buffer))?;
 
                 cpu.alu_buffer = cpu.alu_buffer.wrapping_add(cpu.x);
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
                 cpu.step_cycle();
                 Ok(())
             }
             5 => {
-                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 cpu.step_cycle();
                 Ok(())
             }
             6 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.target_addr)?;
                 cpu.step_cycle();
                 Ok(())
             }
             7 => {
                 // Peform the dummy write first
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
 
                 cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
             8 => {
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -979,39 +898,34 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Dummy Read
-                cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(u16::from(cpu.alu_buffer))?;
 
                 cpu.alu_buffer = cpu.alu_buffer.wrapping_add(cpu.x);
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
                 cpu.step_cycle();
                 Ok(())
             }
             5 => {
-                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 cpu.step_cycle();
                 Ok(())
             }
             6 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
-                cpu.bus.write(cpu.target_addr, register)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, register)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -1034,30 +948,26 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
                 Ok(())
             }
             5 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 
                 // If page boundary cross, overflow and re-read later
                 if cpu.page_boundary_cross {
@@ -1072,8 +982,7 @@ where
             }
             6 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                let value = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
                 cpu.finish_instruction();
                 Ok(())
@@ -1094,22 +1003,19 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
                 Ok(())
@@ -1117,8 +1023,7 @@ where
             5 => {
                 // Dummy read
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.target_addr)?;
 
                 // If page boundary cross, fix high byte and read later
                 if cpu.page_boundary_cross {
@@ -1130,23 +1035,20 @@ where
             }
             6 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.alu_buffer = cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.target_addr)?;
                 cpu.step_cycle();
                 Ok(())
             }
             7 => {
                 // Peform the dummy write first
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
 
                 cpu.alu_buffer = operation(cpu, cpu.alu_buffer);
                 cpu.step_cycle();
                 Ok(())
             }
             8 => {
-                cpu.bus.write(cpu.target_addr, cpu.alu_buffer)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, cpu.alu_buffer)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -1166,22 +1068,19 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.alu_buffer = cpu.read(cpu.pc)?;
                 cpu.step_cycle();
                 cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.low_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
                 cpu.step_cycle();
                 Ok(())
             }
             4 => {
-                cpu.high_buffer = cpu.bus.read(u16::from(cpu.alu_buffer))
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.high_buffer = cpu.read(u16::from(cpu.alu_buffer))?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
                 Ok(())
@@ -1189,8 +1088,7 @@ where
             5 => {
                 // Dummy read
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-                cpu.bus.read(cpu.target_addr)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.target_addr)?;
 
                 // If page boundary cross, fix high byte and read later
                 if cpu.page_boundary_cross {
@@ -1203,8 +1101,7 @@ where
             6 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
-                cpu.bus.write(cpu.target_addr, register)
-                    .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+                cpu.write(cpu.target_addr, register)?;
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -1226,8 +1123,7 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                let value = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                let value = cpu.read(cpu.pc)?;
                 operation(cpu, value);
                 cpu.increment_pc();
                 cpu.finish_instruction();
@@ -1251,8 +1147,7 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.pc)?;
                 cpu.a = operation(cpu, cpu.a);
                 cpu.finish_instruction();
                 Ok(())
@@ -1269,8 +1164,7 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.pc)?;
                 operation(cpu);
                 cpu.finish_instruction();
                 Ok(())
@@ -1293,8 +1187,7 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.low_buffer = cpu.read(cpu.pc)?;
                 cpu.increment_pc();
                 
                 // Check if branched
@@ -1308,8 +1201,7 @@ where
             }
             3 => {
                 // Dummy read
-                cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.pc)?;
 
                 let offset = cpu.low_buffer as i8 as u16;
                 let target_pc = cpu.pc.wrapping_add(offset);
@@ -1326,8 +1218,7 @@ where
             }
             4 => {
                 // Dummy read
-                cpu.bus.read(cpu.pc)
-                    .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
+                cpu.read(cpu.pc)?;
 
                 cpu.pc = (cpu.pc & 0x00FF) | (u16::from(cpu.high_buffer) << 8);
                 cpu.finish_instruction();

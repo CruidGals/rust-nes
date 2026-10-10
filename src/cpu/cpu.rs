@@ -115,4 +115,14 @@ impl<'bus> CPU<'bus> {
     pub fn decrement_sp(&mut self) -> () {
         self.sp = self.sp.wrapping_sub(1);
     }
+
+    pub fn read(&self, address: u16) -> Result<u8, String> {
+        self.bus.read(address)
+            .map_err(|err| format!("Error reading from CPU VRAM at {address:#06X}: {err}"))
+    }
+
+    pub fn write(&mut self, address: u16, value: u8) -> Result<(), String> {
+        self.bus.write(address, value)
+            .map_err(|err| format!("Error writing to CPU VRAM at {address:#06X}: {err}"))
+    }
 }
