@@ -93,4 +93,10 @@ impl<'bus> CPU<'bus> {
         self.p.set(StatusRegister::NEGATIVE, result & 0x80 != 0);
     }
 
+    pub fn set_cmp_flags(&mut self, register: u8, result: u8, value: u8) -> () {
+        self.p.set(StatusRegister::CARRY, register >= value);
+        self.p.set(StatusRegister::ZERO, register == value);
+        self.p.set(StatusRegister::NEGATIVE, result & 0x80 != 0);
+    }
+
 }
