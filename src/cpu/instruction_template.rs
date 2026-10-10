@@ -32,14 +32,14 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 cpu.high_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -68,14 +68,14 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 cpu.high_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -119,14 +119,14 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 cpu.high_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -158,7 +158,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -186,7 +186,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -229,7 +229,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -259,7 +259,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -296,7 +296,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -347,7 +347,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -387,7 +387,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -424,7 +424,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -475,7 +475,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -515,7 +515,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -524,7 +524,7 @@ where
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.x);
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -569,7 +569,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -577,7 +577,7 @@ where
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.x);
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -635,7 +635,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -643,7 +643,7 @@ where
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.x);
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -689,7 +689,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -698,7 +698,7 @@ where
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -743,7 +743,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -751,7 +751,7 @@ where
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -809,7 +809,7 @@ where
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -817,7 +817,7 @@ where
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -864,7 +864,7 @@ where
                 cpu.alu_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -916,7 +916,7 @@ where
                 cpu.alu_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -982,7 +982,7 @@ where
                 cpu.alu_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -1037,7 +1037,7 @@ where
                 cpu.alu_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -1097,7 +1097,7 @@ where
                 cpu.alu_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -1169,7 +1169,7 @@ where
                 cpu.alu_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 cpu.step_cycle();
-                cpu.pc += 1;
+                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -1229,7 +1229,7 @@ where
                 let value = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
                 operation(cpu, value);
-                cpu.pc += 1;
+                cpu.increment_pc();
                 cpu.finish_instruction();
                 Ok(())
             }
@@ -1295,7 +1295,7 @@ where
             2 => {
                 cpu.low_buffer = cpu.bus.read(cpu.pc)
                     .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
-                cpu.pc += 1;
+                cpu.increment_pc();
                 
                 // Check if branched
                 if operation(cpu) {

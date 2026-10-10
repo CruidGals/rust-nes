@@ -299,7 +299,7 @@ pub fn pha_op(cpu: &mut CPU) -> Result<(), String> {
             cpu.target_addr = 0x0100 | u16::from(cpu.sp);
             cpu.bus.write(cpu.target_addr, cpu.a)
                 .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
-            cpu.sp = cpu.sp.wrapping_sub(1);
+            cpu.decrement_sp();
             cpu.finish_instruction();
             Ok(())
         }
@@ -323,7 +323,7 @@ pub fn php_op(cpu: &mut CPU) -> Result<(), String> {
 
             cpu.bus.write(cpu.target_addr, cpu.p.bits())
                 .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
-            cpu.sp = cpu.sp.wrapping_sub(1);
+            cpu.decrement_sp();
             cpu.finish_instruction();
             Ok(())
         }
@@ -340,7 +340,7 @@ pub fn pla_op(cpu: &mut CPU) -> Result<(), String> {
             Ok(())
         }
         3 => {
-            cpu.sp = cpu.sp.wrapping_add(1);
+            cpu.increment_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -365,7 +365,7 @@ pub fn plp_op(cpu: &mut CPU) -> Result<(), String> {
             Ok(())
         }
         3 => {
-            cpu.sp = cpu.sp.wrapping_add(1);
+            cpu.increment_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -397,7 +397,7 @@ pub fn jmp_op_absolute(cpu: &mut CPU) -> Result<(), String> {
         2 => {
             cpu.low_buffer = cpu.bus.read(cpu.pc)
                 .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
-            cpu.pc += 1;
+            cpu.increment_pc();
             cpu.step_cycle();
             Ok(())
         }
@@ -417,14 +417,14 @@ pub fn jmp_op_indirect(cpu: &mut CPU) -> Result<(), String> {
         2 => {
             cpu.low_buffer = cpu.bus.read(cpu.pc)
                 .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
-            cpu.pc += 1;
+            cpu.increment_pc();
             cpu.step_cycle();
             Ok(())
         }
         3 => {
             cpu.high_buffer = cpu.bus.read(cpu.pc)
                 .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
-            cpu.pc += 1;
+            cpu.increment_pc();
             cpu.step_cycle();
             Ok(())
         }
@@ -472,7 +472,7 @@ pub fn jsr_op(cpu: &mut CPU) -> Result<(), String> {
             let high_byte = (cpu.pc >> 8) as u8;
             cpu.bus.write(cpu.target_addr, high_byte)
                 .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
-            cpu.sp = cpu.sp.wrapping_sub(1);
+            cpu.decrement_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -481,7 +481,7 @@ pub fn jsr_op(cpu: &mut CPU) -> Result<(), String> {
             cpu.target_addr = 0x0100 | u16::from(cpu.sp);
             cpu.bus.write(cpu.target_addr, low_byte)
                 .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
-            cpu.sp = cpu.sp.wrapping_sub(1);
+            cpu.decrement_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -506,7 +506,7 @@ pub fn rts_op(cpu: &mut CPU) -> Result<(), String> {
             Ok(())
         }
         3 => {
-            cpu.sp = cpu.sp.wrapping_add(1);
+            cpu.increment_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -515,7 +515,7 @@ pub fn rts_op(cpu: &mut CPU) -> Result<(), String> {
             let low_byte = cpu.bus.read(cpu.target_addr)
                 .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
             cpu.pc = (cpu.pc & 0xFF00) | u16::from(low_byte);
-            cpu.sp = cpu.sp.wrapping_add(1);
+            cpu.increment_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -546,7 +546,7 @@ pub fn rti_op(cpu: &mut CPU) -> Result<(), String> {
             Ok(())
         }
         3 => {
-            cpu.sp = cpu.sp.wrapping_add(1);
+            cpu.increment_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -560,7 +560,7 @@ pub fn rti_op(cpu: &mut CPU) -> Result<(), String> {
             status |= 0b00100000;
 
             cpu.p = StatusRegister::from_bits_retain(status);
-            cpu.sp = cpu.sp.wrapping_add(1);
+            cpu.increment_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -569,7 +569,7 @@ pub fn rti_op(cpu: &mut CPU) -> Result<(), String> {
             let low_byte = cpu.bus.read(cpu.target_addr)
                 .map_err(|err| format!("Error reading from CPU VRAM: {err}"))?;
             cpu.pc = (cpu.pc & 0xFF00) | u16::from(low_byte);
-            cpu.sp = cpu.sp.wrapping_add(1);
+            cpu.increment_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -600,7 +600,7 @@ pub fn brk_op(cpu: &mut CPU) -> Result<(), String> {
             cpu.target_addr = 0x0100 | u16::from(cpu.sp);
             cpu.bus.write(cpu.target_addr, high_byte)
                 .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
-            cpu.sp = cpu.sp.wrapping_sub(1);
+            cpu.decrement_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -609,7 +609,7 @@ pub fn brk_op(cpu: &mut CPU) -> Result<(), String> {
             cpu.target_addr = 0x0100 | u16::from(cpu.sp);
             cpu.bus.write(cpu.target_addr, low_byte)
                 .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
-            cpu.sp = cpu.sp.wrapping_sub(1);
+            cpu.decrement_sp();
             cpu.step_cycle();
             Ok(())
         }
@@ -618,7 +618,7 @@ pub fn brk_op(cpu: &mut CPU) -> Result<(), String> {
             cpu.target_addr = 0x0100 | u16::from(cpu.sp);
             cpu.bus.write(cpu.target_addr, status)
                 .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
-            cpu.sp = cpu.sp.wrapping_sub(1);
+            cpu.decrement_sp();
             cpu.step_cycle();
             Ok(())
         }

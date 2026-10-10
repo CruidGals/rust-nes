@@ -100,3 +100,19 @@ impl<'bus> CPU<'bus> {
     }
 
 }
+
+// Separate functions for navigating pointers and
+// simplifying semantics
+impl<'bus> CPU<'bus> {
+    pub fn increment_pc(&mut self) -> () {
+        self.pc = self.pc.wrapping_add(1);
+    }
+
+    pub fn increment_sp(&mut self) -> () {
+        self.sp = self.sp.wrapping_add(1);
+    }
+
+    pub fn decrement_sp(&mut self) -> () {
+        self.sp = self.sp.wrapping_sub(1);
+    }
+}
