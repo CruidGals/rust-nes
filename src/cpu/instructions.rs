@@ -68,9 +68,10 @@ pub fn sbc_op(cpu: &mut CPU, value: u8) -> () {
     adc_op(cpu, !value);
 }
 
-pub fn inc_op(cpu: &mut CPU) -> () {
-    cpu.alu_buffer = cpu.alu_buffer.wrapping_add(1);
-    cpu.set_zn_flags(cpu.alu_buffer);
+pub fn inc_op(cpu: &mut CPU, value: u8) -> u8 {
+    let result = value.wrapping_add(1);
+    cpu.set_zn_flags(result);
+    result
 }
 
 pub fn inx_op(cpu: &mut CPU) -> () {
@@ -83,9 +84,10 @@ pub fn iny_op(cpu: &mut CPU) -> () {
     cpu.set_zn_flags(cpu.y);
 }
 
-pub fn dec_op(cpu: &mut CPU) -> () {
-    cpu.alu_buffer = cpu.alu_buffer.wrapping_sub(1);
-    cpu.set_zn_flags(cpu.alu_buffer);
+pub fn dec_op(cpu: &mut CPU, value: u8) -> u8 {
+    let result = value.wrapping_sub(1);
+    cpu.set_zn_flags(result);
+    result
 }
 
 pub fn dex_op(cpu: &mut CPU) -> () {
