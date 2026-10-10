@@ -280,3 +280,107 @@ pub fn sed_op(cpu: &mut CPU) -> () {
 pub fn clv_op(cpu: &mut CPU) -> () {
     cpu.p.remove(StatusRegister::OVERFLOW);
 }
+
+// STACK INSTRUCTIONS
+
+// These instructions don't have a template to go off of,
+// so these are the raw implementations
+
+pub fn pha_op(cpu: &mut CPU) -> Result<(), String> {
+    match cpu.cycle_step {
+        2 => {
+            cpu.bus.read(cpu.pc)
+                .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+            cpu.step_cycle();
+            Ok(())
+        }
+        3 => {
+            cpu.target_addr = 0x0100 | u16::from(cpu.sp);
+            cpu.bus.write(cpu.target_addr, cpu.a)
+                .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+            cpu.sp = cpu.sp.wrapping_sub(1);
+            cpu.finish_instruction();
+            Ok(())
+        }
+        _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+    }
+}
+
+pub fn php_op(cpu: &mut CPU) -> Result<(), String> {
+    match cpu.cycle_step {
+        2 => {
+            cpu.bus.read(cpu.pc)
+                .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+            cpu.step_cycle();
+            Ok(())
+        }
+        3 => {
+            cpu.target_addr = 0x0100 | u16::from(cpu.sp);
+
+            // Set before pushing to stack
+            cpu.p.set(StatusRegister::BREAK, true);
+
+            cpu.bus.write(cpu.target_addr, cpu.p.bits())
+                .map_err(|err| format!("Error writing to CPU VRAM: {err}"))?;
+            cpu.sp = cpu.sp.wrapping_sub(1);
+            cpu.finish_instruction();
+            Ok(())
+        }
+        _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+    }
+}
+
+pub fn pla_op(cpu: &mut CPU) -> Result<(), String> {
+    match cpu.cycle_step {
+        2 => {
+            cpu.bus.read(cpu.pc)
+                .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+            cpu.step_cycle();
+            Ok(())
+        }
+        3 => {
+            cpu.sp = cpu.sp.wrapping_add(1);
+            cpu.step_cycle();
+            Ok(())
+        }
+        4 => {
+            cpu.target_addr = 0x0100 | u16::from(cpu.sp);
+            cpu.a = cpu.bus.read(cpu.target_addr)
+                        .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+            cpu.set_zn_flags(cpu.a);
+            cpu.finish_instruction();
+            Ok(())
+        }
+        _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+    }
+}
+
+pub fn plp_op(cpu: &mut CPU) -> Result<(), String> {
+    match cpu.cycle_step {
+        2 => {
+            cpu.bus.read(cpu.pc)
+                .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+            cpu.step_cycle();
+            Ok(())
+        }
+        3 => {
+            cpu.sp = cpu.sp.wrapping_add(1);
+            cpu.step_cycle();
+            Ok(())
+        }
+        4 => {
+            cpu.target_addr = 0x0100 | u16::from(cpu.sp);
+            let mut status = cpu.bus.read(cpu.target_addr)
+                        .map_err(|err| format!("Problem reading from CPU VRAM: {err}"))?;
+
+            // Clear break bit and set unused flag
+            status &= 0b11101111;
+            status |= 0b00100000;
+            
+            cpu.p = StatusRegister::from_bits_retain(status);
+            cpu.finish_instruction();
+            Ok(())
+        }
+        _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
+    }
+}
