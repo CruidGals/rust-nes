@@ -84,4 +84,13 @@ impl<'bus> CPU<'bus> {
         self.alu_buffer = 0;
     }
 
+    ///
+    /// Sets the zero and negative flags. Common for a lot
+    /// of instructions from NES CPU
+    /// 
+    pub fn set_zn_flags(&mut self, result: u8) -> () {
+        self.p.set(StatusRegister::ZERO, result == 0);
+        self.p.set(StatusRegister::NEGATIVE, result & 0x80 != 0);
+    }
+
 }
