@@ -62,6 +62,11 @@ impl<'bus> CPU<'bus> {
         }
     }
 
+    pub fn tick(&mut self) -> () { /* Not implemented yet */}
+}
+
+// Instruction specific functions
+impl<'bus> CPU<'bus> {
     ///
     /// Steps through a cycle in the instruction. Increments cycle_step
     /// 
@@ -98,7 +103,6 @@ impl<'bus> CPU<'bus> {
         self.p.set(StatusRegister::ZERO, register == value);
         self.p.set(StatusRegister::NEGATIVE, result & 0x80 != 0);
     }
-
 }
 
 // Separate functions for navigating pointers and
