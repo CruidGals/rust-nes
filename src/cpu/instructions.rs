@@ -820,4 +820,158 @@ mod tests {
         assert!(cpu.p.contains(StatusRegister::NEGATIVE));
         assert!(!cpu.p.contains(StatusRegister::ZERO));
     }
+
+    #[test]
+    fn test_jmp_op_indirect_page_wrap() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // JMP ($02FF): low byte at $02FF, high byte wraps to $0200
+        cpu.pc = 0x0000;
+        cpu.cycle_step = 2;
+        cpu.write(0x0000, 0xFF).unwrap();
+        cpu.write(0x0001, 0x02).unwrap();
+        cpu.write(0x02FF, 0x34).unwrap();
+        cpu.write(0x0200, 0x12).unwrap();
+        cpu.write(0x0300, 0xAB).unwrap();
+
+        jmp_op_indirect(&mut cpu).unwrap();
+        jmp_op_indirect(&mut cpu).unwrap();
+        jmp_op_indirect(&mut cpu).unwrap();
+        jmp_op_indirect(&mut cpu).unwrap();
+
+        // PC must come from $0200, not $0300
+        assert_eq!(cpu.pc, 0x1234);
+        assert_eq!(cpu.cycle_step, 0);
+    }
+
+    #[test]
+    fn test_jsr_op_pushes_third_byte() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // JSR $1234 at $01FF: operands at $0200/$0201; third byte is $0201
+        cpu.pc = 0x0200;
+        cpu.sp = 0xFD;
+        cpu.cycle_step = 2;
+        cpu.write(0x0200, 0x34).unwrap();
+        cpu.write(0x0201, 0x12).unwrap();
+
+        jsr_op(&mut cpu).unwrap();
+        jsr_op(&mut cpu).unwrap();
+        jsr_op(&mut cpu).unwrap();
+        jsr_op(&mut cpu).unwrap();
+        jsr_op(&mut cpu).unwrap();
+
+        // Pushed PC - 1 (address of the third byte), SP decremented twice
+        assert_eq!(cpu.read(0x01FD).unwrap(), 0x02);
+        assert_eq!(cpu.read(0x01FC).unwrap(), 0x01);
+        assert_eq!(cpu.sp, 0xFB);
+        assert_eq!(cpu.pc, 0x1234);
+        assert_eq!(cpu.cycle_step, 0);
+    }
+
+    #[test]
+    fn test_rts_op_pulls_and_increments_pc() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Stack holds the JSR-style return address $0201
+        cpu.pc = 0x0000;
+        cpu.sp = 0xFB;
+        cpu.cycle_step = 2;
+        cpu.write(0x01FC, 0x01).unwrap();
+        cpu.write(0x01FD, 0x02).unwrap();
+
+        rts_op(&mut cpu).unwrap();
+        rts_op(&mut cpu).unwrap();
+        rts_op(&mut cpu).unwrap();
+        rts_op(&mut cpu).unwrap();
+        rts_op(&mut cpu).unwrap();
+
+        // Reconstructs $0201, then adds +1; SP incremented twice
+        assert_eq!(cpu.pc, 0x0202);
+        assert_eq!(cpu.sp, 0xFD);
+        assert_eq!(cpu.cycle_step, 0);
+    }
+
+    #[test]
+    fn test_php_op_sets_break_and_unused() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.pc = 0x0000;
+        cpu.sp = 0xFD;
+        cpu.cycle_step = 2;
+        cpu.p.set(StatusRegister::CARRY, true);
+
+        php_op(&mut cpu).unwrap();
+        php_op(&mut cpu).unwrap();
+
+        let pushed = cpu.read(0x01FD).unwrap();
+
+        // Bit 4 (B) and bit 5 (unused) are forced set; other flags are preserved
+        assert_eq!(pushed & 0b00110000, 0b00110000);
+        assert_eq!(pushed & 0b00000001, 0b00000001);
+        assert_eq!(cpu.sp, 0xFC);
+        assert_eq!(cpu.cycle_step, 0);
+    }
+
+    #[test]
+    fn test_plp_op_clears_break_sets_unused() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Stack byte has B set and unused clear
+        cpu.pc = 0x0000;
+        cpu.sp = 0xFC;
+        cpu.cycle_step = 2;
+        cpu.write(0x01FD, 0b11011111).unwrap();
+
+        plp_op(&mut cpu).unwrap();
+        plp_op(&mut cpu).unwrap();
+        plp_op(&mut cpu).unwrap();
+
+        // B is cleared, unused is forced set, remaining flags come from the stack
+        assert!(!cpu.p.contains(StatusRegister::BREAK));
+        assert_eq!(cpu.p.bits() & 0b00100000, 0b00100000);
+        assert!(cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(cpu.p.contains(StatusRegister::OVERFLOW));
+        assert!(cpu.p.contains(StatusRegister::CARRY));
+        assert_eq!(cpu.sp, 0xFD);
+        assert_eq!(cpu.cycle_step, 0);
+    }
+
+    #[test]
+    fn test_brk_op_stack_and_vector() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // BRK at $0200: after the opcode fetch, PC is $0201 and BRK pushes PC + 2
+        cpu.pc = 0x0201;
+        cpu.sp = 0xFD;
+        cpu.cycle_step = 2;
+        cpu.p.set(StatusRegister::CARRY, true);
+        cpu.write(0xFFFE, 0x00).unwrap();
+        cpu.write(0xFFFF, 0x03).unwrap();
+
+        brk_op(&mut cpu).unwrap();
+        brk_op(&mut cpu).unwrap();
+        brk_op(&mut cpu).unwrap();
+        brk_op(&mut cpu).unwrap();
+        brk_op(&mut cpu).unwrap();
+        brk_op(&mut cpu).unwrap();
+
+        // Pushed PC + 2 ($0202), then P with B and unused set
+        assert_eq!(cpu.read(0x01FD).unwrap(), 0x02);
+        assert_eq!(cpu.read(0x01FC).unwrap(), 0x02);
+        assert_eq!(cpu.read(0x01FB).unwrap() & 0b00110000, 0b00110000);
+        assert_eq!(cpu.read(0x01FB).unwrap() & 0b00000001, 0b00000001);
+
+        // I is set on the live register; PC comes from $FFFE/$FFFF
+        assert!(cpu.p.contains(StatusRegister::INTERRUPT));
+        assert_eq!(cpu.pc, 0x0300);
+        assert_eq!(cpu.sp, 0xFA);
+        assert_eq!(cpu.cycle_step, 0);
+    }
 }
