@@ -608,3 +608,9 @@ pub fn brk_op(cpu: &mut CPU) -> Result<(), String> {
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
     }
 }
+
+// ------------------------------------------------------------------
+// EXTRA INSTRUCTIONS
+
+// No-op instruction has no functionality
+pub fn nop_op(_cpu: &mut CPU) -> () {}
