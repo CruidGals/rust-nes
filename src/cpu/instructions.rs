@@ -314,11 +314,8 @@ pub fn php_op(cpu: &mut CPU) -> Result<(), String> {
         }
         3 => {
             cpu.target_addr = 0x0100 | u16::from(cpu.sp);
-
-            // Set before pushing to stack
-            cpu.p.set(StatusRegister::BREAK, true);
-
-            cpu.write(cpu.target_addr, cpu.p.bits())?;
+            let status = cpu.p.bits() | 0b00110000; // Set break and unused flag
+            cpu.write(cpu.target_addr, status)?;
             cpu.decrement_sp();
             cpu.finish_instruction();
             Ok(())
