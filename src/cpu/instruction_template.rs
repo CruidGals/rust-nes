@@ -1228,3 +1228,260 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cpu::{cpu::CPU, cpubus::CPUBus};
+    use std::cell::Cell;
+
+    #[test]
+    fn test_absolute_indexed_x_addr_r_no_page_cross() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Base $0100 + X = $05 → $0105, no page cross
+        cpu.pc = 0x0000;
+        cpu.x = 0x05;
+        cpu.cycle_step = 2;
+        cpu.write(0x0000, 0x00).unwrap();
+        cpu.write(0x0001, 0x01).unwrap();
+        cpu.write(0x0105, 0x42).unwrap();
+
+        let seen = Cell::new(None);
+        let template = absolute_indexed_x_addr_r(|_, value| {
+            seen.set(Some(value));
+        });
+
+        // Cycle 2: read low byte
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 3);
+
+        // Cycle 3: read high byte and add X
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 4);
+        assert!(!cpu.page_boundary_cross);
+
+        // Cycle 4: final read, then finish
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(seen.get(), Some(0x42));
+    }
+
+    #[test]
+    fn test_absolute_indexed_x_addr_r_page_cross() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Base $01FE + X = $05 → dummy $0103, real $0203
+        cpu.pc = 0x0000;
+        cpu.x = 0x05;
+        cpu.cycle_step = 2;
+        cpu.write(0x0000, 0xFE).unwrap();
+        cpu.write(0x0001, 0x01).unwrap();
+        cpu.write(0x0103, 0x11).unwrap();
+        cpu.write(0x0203, 0x22).unwrap();
+
+        let seen = Cell::new(None);
+        let template = absolute_indexed_x_addr_r(|_, value| {
+            seen.set(Some(value));
+        });
+
+        // Cycle 2: read low byte
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 3);
+
+        // Cycle 3: read high byte and add X (overflows)
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 4);
+        assert!(cpu.page_boundary_cross);
+
+        // Cycle 4: uncorrected dummy read, then fix high byte
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 5);
+        assert_eq!(cpu.target_addr, 0x0103);
+        assert_eq!(cpu.high_buffer, 0x02);
+        assert_eq!(seen.get(), None);
+
+        // Cycle 5: corrected final read, then finish
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(seen.get(), Some(0x22));
+    }
+
+    #[test]
+    fn test_absolute_indexed_x_addr_w_no_page_cross() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Base $0100 + X = $05 → still 5 cycles, dummy read on cycle 4
+        cpu.pc = 0x0000;
+        cpu.x = 0x05;
+        cpu.cycle_step = 2;
+        cpu.write(0x0000, 0x00).unwrap();
+        cpu.write(0x0001, 0x01).unwrap();
+
+        let template = absolute_indexed_x_addr_w(|_| 0xAA);
+
+        // Cycle 2: read low byte
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 3);
+
+        // Cycle 3: read high byte and add X
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 4);
+        assert!(!cpu.page_boundary_cross);
+
+        // Cycle 4: dummy read, no early finish
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 5);
+        assert_eq!(cpu.target_addr, 0x0105);
+        assert_eq!(cpu.read(0x0105).unwrap(), 0x00);
+
+        // Cycle 5: real write, then finish
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.read(0x0105).unwrap(), 0xAA);
+    }
+
+    #[test]
+    fn test_absolute_indexed_x_addr_w_page_cross() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Base $01FE + X = $05 → dummy $0103, write $0203
+        cpu.pc = 0x0000;
+        cpu.x = 0x05;
+        cpu.cycle_step = 2;
+        cpu.write(0x0000, 0xFE).unwrap();
+        cpu.write(0x0001, 0x01).unwrap();
+
+        let template = absolute_indexed_x_addr_w(|_| 0xAA);
+
+        // Cycle 2: read low byte
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 3);
+
+        // Cycle 3: read high byte and add X (overflows)
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 4);
+        assert!(cpu.page_boundary_cross);
+
+        // Cycle 4: uncorrected dummy read, then fix high byte
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 5);
+        assert_eq!(cpu.target_addr, 0x0103);
+        assert_eq!(cpu.high_buffer, 0x02);
+        assert_eq!(cpu.read(0x0103).unwrap(), 0x00);
+        assert_eq!(cpu.read(0x0203).unwrap(), 0x00);
+
+        // Cycle 5: write to the corrected address, then finish
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.read(0x0103).unwrap(), 0x00);
+        assert_eq!(cpu.read(0x0203).unwrap(), 0xAA);
+    }
+
+    #[test]
+    fn test_zero_page_addr_rmw_dummy_write() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.pc = 0x0000;
+        cpu.cycle_step = 2;
+        cpu.write(0x0000, 0x20).unwrap();
+        cpu.write(0x0020, 0x10).unwrap();
+
+        let template = zero_page_addr_rmw(|_, value| value.wrapping_add(1));
+
+        // Cycle 2: read zero-page address
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 3);
+
+        // Cycle 3: read operand into alu_buffer
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 4);
+        assert_eq!(cpu.target_addr, 0x0020);
+        assert_eq!(cpu.alu_buffer, 0x10);
+
+        // Cycle 4: dummy write of the unmodified buffer, then mutate
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 5);
+        assert_eq!(cpu.read(0x0020).unwrap(), 0x10);
+        assert_eq!(cpu.alu_buffer, 0x11);
+
+        // Cycle 5: write the mutated result, then finish
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.read(0x0020).unwrap(), 0x11);
+    }
+
+    #[test]
+    fn test_relative_addr_not_taken() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.pc = 0x0100;
+        cpu.cycle_step = 2;
+        cpu.write(0x0100, 0x05).unwrap();
+
+        let template = relative_addr(|_| false);
+
+        // Cycle 2: read offset, branch not taken, finish
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.pc, 0x0101);
+    }
+
+    #[test]
+    fn test_relative_addr_taken_same_page() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.pc = 0x0100;
+        cpu.cycle_step = 2;
+        cpu.write(0x0100, 0x05).unwrap();
+
+        let template = relative_addr(|_| true);
+
+        // Cycle 2: read offset, branch taken
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 3);
+        assert_eq!(cpu.pc, 0x0101);
+
+        // Cycle 3: apply offset on the same page, then finish
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.pc, 0x0106);
+    }
+
+    #[test]
+    fn test_relative_addr_taken_page_cross() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Offset at $01FE; after the increment, PC is $01FF + $05 → $0204
+        cpu.pc = 0x01FE;
+        cpu.cycle_step = 2;
+        cpu.write(0x01FE, 0x05).unwrap();
+
+        let template = relative_addr(|_| true);
+
+        // Cycle 2: read offset, branch taken
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 3);
+        assert_eq!(cpu.pc, 0x01FF);
+
+        // Cycle 3: dummy read, fix only the low byte
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 4);
+        assert!(cpu.page_boundary_cross);
+        assert_eq!(cpu.pc, 0x0104);
+        assert_eq!(cpu.high_buffer, 0x02);
+
+        // Cycle 4: dummy read, then write the corrected high byte
+        template(&mut cpu).unwrap();
+        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.pc, 0x0204);
+    }
+}
