@@ -614,3 +614,210 @@ pub fn brk_op(cpu: &mut CPU) -> Result<(), String> {
 
 // No-op instruction has no functionality
 pub fn nop_op(_cpu: &mut CPU) -> () {}
+
+// ------------------------------------------------------------------
+// INSTRUCTIONS TEST
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cpu::{cpu::CPU, cpubus::CPUBus};
+
+    #[test]
+    fn test_adc_op_overflow() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.a = 0x50;
+        adc_op(&mut cpu, 0x50);
+
+        // Assert value
+        assert_eq!(cpu.a, 0xA0);
+
+        // Assert the correct flags
+        assert!(cpu.p.contains(StatusRegister::OVERFLOW));
+        assert!(cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(!cpu.p.contains(StatusRegister::ZERO));
+        assert!(!cpu.p.contains(StatusRegister::CARRY));
+    }
+
+    #[test]
+    fn test_adc_op_unsigned_carry() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.a = 0xFF;
+        adc_op(&mut cpu, 0x01);
+
+        // Assert value wrapped to zero
+        assert_eq!(cpu.a, 0x00);
+
+        // Assert the correct flags
+        assert!(!cpu.p.contains(StatusRegister::OVERFLOW));
+        assert!(!cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(cpu.p.contains(StatusRegister::ZERO));
+        assert!(cpu.p.contains(StatusRegister::CARRY));
+    }
+
+    #[test]
+    fn test_adc_op_existing_carry() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.a = 0xFD;
+        cpu.p.set(StatusRegister::CARRY, true);
+        adc_op(&mut cpu, 0x01);
+
+        // Assert value is correct
+        assert_eq!(cpu.a, 0xFF);
+
+        // Assert the correct flags
+        assert!(!cpu.p.contains(StatusRegister::OVERFLOW));
+        assert!(cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(!cpu.p.contains(StatusRegister::ZERO));
+        assert!(!cpu.p.contains(StatusRegister::CARRY));
+    }
+
+    #[test]
+    fn test_sbc_op_borrow() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // C = 1 means no incoming borrow
+        cpu.a = 0x50;
+        cpu.p.set(StatusRegister::CARRY, true);
+        sbc_op(&mut cpu, 0xF0);
+
+        // 0x50 - 0xF0 = 0x60, but a borrow is generated
+        assert_eq!(cpu.a, 0x60);
+
+        // Assert the correct flags
+        assert!(!cpu.p.contains(StatusRegister::OVERFLOW));
+        assert!(!cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(!cpu.p.contains(StatusRegister::ZERO));
+        assert!(!cpu.p.contains(StatusRegister::CARRY));
+    }
+
+    #[test]
+    fn test_bit_op_nv_from_operand() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // A & value == 0, but bits 7 and 6 of the operand are set
+        cpu.a = 0x00;
+        bit_op(&mut cpu, 0xC0);
+
+        // Assert accumulator is unchanged
+        assert_eq!(cpu.a, 0x00);
+
+        // N and V are copied from operand bits 7 and 6, not from A & value
+        assert!(cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(cpu.p.contains(StatusRegister::OVERFLOW));
+        assert!(cpu.p.contains(StatusRegister::ZERO));
+    }
+
+    #[test]
+    fn test_bit_op_zero_from_and() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Same operand bits 7/6, but A & value != 0
+        cpu.a = 0xC0;
+        bit_op(&mut cpu, 0xC0);
+
+        // Assert accumulator is unchanged
+        assert_eq!(cpu.a, 0xC0);
+
+        // N and V still come from the operand; Z only reflects A & value
+        assert!(cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(cpu.p.contains(StatusRegister::OVERFLOW));
+        assert!(!cpu.p.contains(StatusRegister::ZERO));
+    }
+
+    #[test]
+    fn test_cmp_op_register_greater() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.a = 0x50;
+        cmp_op(&mut cpu, 0x20);
+
+        // Assert accumulator is unchanged
+        assert_eq!(cpu.a, 0x50);
+
+        // Register > Memory: C = 1, Z = 0
+        assert!(cpu.p.contains(StatusRegister::CARRY));
+        assert!(!cpu.p.contains(StatusRegister::ZERO));
+        assert!(!cpu.p.contains(StatusRegister::NEGATIVE));
+    }
+
+    #[test]
+    fn test_cmp_op_register_equal() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.a = 0x50;
+        cmp_op(&mut cpu, 0x50);
+
+        // Assert accumulator is unchanged
+        assert_eq!(cpu.a, 0x50);
+
+        // Register == Memory: C = 1, Z = 1
+        assert!(cpu.p.contains(StatusRegister::CARRY));
+        assert!(cpu.p.contains(StatusRegister::ZERO));
+        assert!(!cpu.p.contains(StatusRegister::NEGATIVE));
+    }
+
+    #[test]
+    fn test_cmp_op_register_less() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.a = 0x20;
+        cmp_op(&mut cpu, 0x50);
+
+        // Assert accumulator is unchanged
+        assert_eq!(cpu.a, 0x20);
+
+        // Register < Memory: C = 0, Z = 0
+        assert!(!cpu.p.contains(StatusRegister::CARRY));
+        assert!(!cpu.p.contains(StatusRegister::ZERO));
+        assert!(cpu.p.contains(StatusRegister::NEGATIVE));
+    }
+
+    #[test]
+    fn test_rol_op_carry_through() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Bit 7 shifts into C; previous C shifts into bit 0
+        cpu.p.set(StatusRegister::CARRY, true);
+        let result = rol_op(&mut cpu, 0x80);
+
+        // Assert value
+        assert_eq!(result, 0x01);
+
+        // Assert the correct flags
+        assert!(cpu.p.contains(StatusRegister::CARRY));
+        assert!(!cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(!cpu.p.contains(StatusRegister::ZERO));
+    }
+
+    #[test]
+    fn test_ror_op_carry_through() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Bit 0 shifts into C; previous C shifts into bit 7
+        cpu.p.set(StatusRegister::CARRY, true);
+        let result = ror_op(&mut cpu, 0x01);
+
+        // Assert value
+        assert_eq!(result, 0x80);
+
+        // Assert the correct flags
+        assert!(cpu.p.contains(StatusRegister::CARRY));
+        assert!(cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(!cpu.p.contains(StatusRegister::ZERO));
+    }
+}
