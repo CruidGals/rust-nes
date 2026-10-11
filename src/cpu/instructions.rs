@@ -131,17 +131,17 @@ pub fn bit_op(cpu: &mut CPU, value: u8) -> () {
 // COMPARE INSTRUCTIONS
 
 pub fn cmp_op(cpu: &mut CPU, value: u8) -> () {
-    let result = cpu.a - value;
+    let result = cpu.a.wrapping_sub(value);
     cpu.set_cmp_flags(cpu.a, result, value);
 }
 
 pub fn cpx_op(cpu: &mut CPU, value: u8) -> () {
-    let result = cpu.x - value;
+    let result = cpu.x.wrapping_sub(value);
     cpu.set_cmp_flags(cpu.x, result, value);
 }
 
 pub fn cpy_op(cpu: &mut CPU, value: u8) -> () {
-    let result = cpu.y - value;
+    let result = cpu.y.wrapping_sub(value);
     cpu.set_cmp_flags(cpu.y, result, value);
 }
 
