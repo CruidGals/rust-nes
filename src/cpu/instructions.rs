@@ -601,7 +601,7 @@ pub fn brk_op(cpu: &mut CPU) -> Result<(), String> {
         }
         7 => {
             cpu.high_buffer = cpu.read(0xFFFF)?;
-            cpu.pc = (cpu.pc & 0xFF) | u16::from(cpu.high_buffer << 8);
+            cpu.pc = (cpu.pc & 0xFF) | u16::from(cpu.high_buffer) << 8;
             cpu.finish_instruction();
             Ok(())
         }
