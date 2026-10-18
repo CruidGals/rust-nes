@@ -53,7 +53,7 @@ impl<'bus> CPU<'bus> {
             p: StatusRegister::empty(),
 
             curr_opcode: None,
-            cycle_step: 0,
+            cycle_step: 1,
             low_buffer: 0,
             high_buffer: 0,
             page_boundary_cross: false,
@@ -64,10 +64,29 @@ impl<'bus> CPU<'bus> {
         }
     }
 
-    pub fn tick(&mut self) -> () {
+    pub fn tick(&mut self) -> Result<(), String> {
         // TODO stub: Polling PPU's NMI wire
 
-        
+        // Choose the opcode if on first cycle step
+        if self.cycle_step == 1 {
+            let opcode = self.read(self.pc)?;
+            self.curr_opcode = self.choose_opcode(opcode);
+            self.increment_pc();
+            self.step_cycle();
+        } else {
+            // Run through the instruction
+            if self.curr_opcode.is_none() {
+                panic!("Cycle step incremented even though opcode not selected");
+            }
+            
+            // Step thru the instruction
+            let op = self.curr_opcode.unwrap();
+            op(self)?;
+        }
+
+        // TODO: deal with interrup
+
+        Ok(())
     }
 
     ///
@@ -351,7 +370,7 @@ impl<'bus> CPU<'bus> {
     /// 
     pub fn finish_instruction(&mut self) -> () {
         self.curr_opcode = None;
-        self.cycle_step = 0;
+        self.cycle_step = 1;
         self.low_buffer = 0;
         self.high_buffer = 0;
         self.page_boundary_cross = false;
@@ -378,14 +397,17 @@ impl<'bus> CPU<'bus> {
 // Separate functions for navigating pointers and
 // simplifying semantics
 impl<'bus> CPU<'bus> {
+    #[inline]
     pub fn increment_pc(&mut self) -> () {
         self.pc = self.pc.wrapping_add(1);
     }
 
+    #[inline]
     pub fn increment_sp(&mut self) -> () {
         self.sp = self.sp.wrapping_add(1);
     }
 
+    #[inline]
     pub fn decrement_sp(&mut self) -> () {
         self.sp = self.sp.wrapping_sub(1);
     }
