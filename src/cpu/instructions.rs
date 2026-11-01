@@ -839,7 +839,7 @@ mod tests {
 
         // PC must come from $0200, not $0300
         assert_eq!(cpu.pc, 0x1234);
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
     }
 
     #[test]
@@ -865,7 +865,7 @@ mod tests {
         assert_eq!(cpu.read(0x01FC).unwrap(), 0x01);
         assert_eq!(cpu.sp, 0xFB);
         assert_eq!(cpu.pc, 0x1234);
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
     }
 
     #[test]
@@ -889,7 +889,7 @@ mod tests {
         // Reconstructs $0201, then adds +1; SP incremented twice
         assert_eq!(cpu.pc, 0x0202);
         assert_eq!(cpu.sp, 0xFD);
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
     }
 
     #[test]
@@ -911,7 +911,7 @@ mod tests {
         assert_eq!(pushed & 0b00110000, 0b00110000);
         assert_eq!(pushed & 0b00000001, 0b00000001);
         assert_eq!(cpu.sp, 0xFC);
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
     }
 
     #[test]
@@ -936,7 +936,7 @@ mod tests {
         assert!(cpu.p.contains(StatusRegister::OVERFLOW));
         assert!(cpu.p.contains(StatusRegister::CARRY));
         assert_eq!(cpu.sp, 0xFD);
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
     }
 
     #[test]
@@ -969,6 +969,6 @@ mod tests {
         assert!(cpu.p.contains(StatusRegister::INTERRUPT));
         assert_eq!(cpu.pc, 0x0300);
         assert_eq!(cpu.sp, 0xFA);
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
     }
 }

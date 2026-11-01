@@ -422,3 +422,112 @@ impl<'bus> CPU<'bus> {
             .map_err(|err| format!("Error writing to CPU VRAM at {address:#06X}: {err}"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cpu::cpubus::CPUBus;
+
+    fn run_until(cpu: &mut CPU, end_pc: u16) {
+        for _ in 0..500 {
+            if cpu.pc == end_pc && cpu.cycle_step == 1 {
+                return;
+            }
+            cpu.tick().unwrap();
+        }
+        panic!(
+            "did not reach {end_pc:#06X} (pc={:#06X}, cycle_step={})",
+            cpu.pc, cpu.cycle_step
+        );
+    }
+
+    #[test]
+    fn test_tick_instruction_sequence() {
+        let mut bus = CPUBus::new();
+        let mut cpu = CPU::new(&mut bus);
+
+        // Workspace is $50-$53 so stores cannot overwrite this program ($0000-$003B)
+        // or the subroutine at $0040.
+        //
+        // LDA #$10 / TAX / TAY / INX / INY / TXA / CLC / ADC #$01 / STA $50 / LDA $50
+        // ASL A / LSR A / ORA #$80 / AND #$F0 / EOR #$10 / SEC / SBC #$01
+        // PHA / LDA #$00 / PLA / STX $0052 / STY $0053 / CMP #$7F
+        // BNE (not taken) / NOP / NOP / BEQ (taken, skips LDA #$AA)
+        // LDX #$05 / INC $50 / DEC $50 / BIT $50 / DEY / DEX
+        // JSR $0040 / NOP / NOP
+        let program = [
+            0xA9, 0x10, // LDA #$10
+            0xAA,       // TAX
+            0xA8,       // TAY
+            0xE8,       // INX
+            0xC8,       // INY
+            0x8A,       // TXA
+            0x18,       // CLC
+            0x69, 0x01, // ADC #$01
+            0x85, 0x50, // STA $50
+            0xA5, 0x50, // LDA $50
+            0x0A,       // ASL A
+            0x4A,       // LSR A
+            0x09, 0x80, // ORA #$80
+            0x29, 0xF0, // AND #$F0
+            0x49, 0x10, // EOR #$10
+            0x38,       // SEC
+            0xE9, 0x01, // SBC #$01
+            0x48,       // PHA
+            0xA9, 0x00, // LDA #$00
+            0x68,       // PLA
+            0x8E, 0x52, 0x00, // STX $0052
+            0x8C, 0x53, 0x00, // STY $0053
+            0xC9, 0x7F, // CMP #$7F
+            0xD0, 0x02, // BNE +2 (not taken)
+            0xEA,       // NOP
+            0xEA,       // NOP
+            0xF0, 0x02, // BEQ +2 (taken)
+            0xA9, 0xAA, // LDA #$AA (skipped)
+            0xA2, 0x05, // LDX #$05
+            0xE6, 0x50, // INC $50
+            0xC6, 0x50, // DEC $50
+            0x24, 0x50, // BIT $50
+            0x88,       // DEY
+            0xCA,       // DEX
+            0x20, 0x40, 0x00, // JSR $0040
+            0xEA,       // NOP
+            0xEA,       // NOP
+        ];
+
+        for (i, byte) in program.iter().enumerate() {
+            cpu.write(0x0000 + i as u16, *byte).unwrap();
+        }
+
+        // Subroutine at $0040: LDA #$42 / STA $51 / RTS
+        cpu.write(0x0040, 0xA9).unwrap();
+        cpu.write(0x0041, 0x42).unwrap();
+        cpu.write(0x0042, 0x85).unwrap();
+        cpu.write(0x0043, 0x51).unwrap();
+        cpu.write(0x0044, 0x60).unwrap();
+
+        cpu.pc = 0x0000;
+        run_until(&mut cpu, 0x003C);
+
+        // A=$42 from the subroutine; X/Y after INX/INY, LDX #$05, DEX, DEY
+        assert_eq!(cpu.a, 0x42);
+        assert_eq!(cpu.x, 0x04);
+        assert_eq!(cpu.y, 0x10);
+        assert_eq!(cpu.sp, 0xFD);
+        assert_eq!(cpu.pc, 0x003C);
+        assert_eq!(cpu.cycle_step, 1);
+
+        // $50 ended at $12 (STA $12, INC, DEC). $51 written by the JSR target.
+        // $52/$53 captured X/Y before LDX #$05.
+        assert_eq!(cpu.read(0x0050).unwrap(), 0x12);
+        assert_eq!(cpu.read(0x0051).unwrap(), 0x42);
+        assert_eq!(cpu.read(0x0052).unwrap(), 0x11);
+        assert_eq!(cpu.read(0x0053).unwrap(), 0x11);
+
+        // CMP left C set. LDA #$42 left Z and N clear. BIT $30 cleared V.
+        assert!(cpu.p.contains(StatusRegister::CARRY));
+        assert!(!cpu.p.contains(StatusRegister::ZERO));
+        assert!(!cpu.p.contains(StatusRegister::NEGATIVE));
+        assert!(!cpu.p.contains(StatusRegister::OVERFLOW));
+    }
+}

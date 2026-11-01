@@ -1264,7 +1264,7 @@ mod tests {
 
         // Cycle 4: final read, then finish
         template(&mut cpu).unwrap();
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
         assert_eq!(seen.get(), Some(0x42));
     }
 
@@ -1305,7 +1305,7 @@ mod tests {
 
         // Cycle 5: corrected final read, then finish
         template(&mut cpu).unwrap();
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
         assert_eq!(seen.get(), Some(0x22));
     }
 
@@ -1340,7 +1340,7 @@ mod tests {
 
         // Cycle 5: real write, then finish
         template(&mut cpu).unwrap();
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
         assert_eq!(cpu.read(0x0105).unwrap(), 0xAA);
     }
 
@@ -1377,7 +1377,7 @@ mod tests {
 
         // Cycle 5: write to the corrected address, then finish
         template(&mut cpu).unwrap();
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
         assert_eq!(cpu.read(0x0103).unwrap(), 0x00);
         assert_eq!(cpu.read(0x0203).unwrap(), 0xAA);
     }
@@ -1412,7 +1412,7 @@ mod tests {
 
         // Cycle 5: write the mutated result, then finish
         template(&mut cpu).unwrap();
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
         assert_eq!(cpu.read(0x0020).unwrap(), 0x11);
     }
 
@@ -1429,7 +1429,7 @@ mod tests {
 
         // Cycle 2: read offset, branch not taken, finish
         template(&mut cpu).unwrap();
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
         assert_eq!(cpu.pc, 0x0101);
     }
 
@@ -1451,7 +1451,7 @@ mod tests {
 
         // Cycle 3: apply offset on the same page, then finish
         template(&mut cpu).unwrap();
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
         assert_eq!(cpu.pc, 0x0106);
     }
 
@@ -1481,7 +1481,7 @@ mod tests {
 
         // Cycle 4: dummy read, then write the corrected high byte
         template(&mut cpu).unwrap();
-        assert_eq!(cpu.cycle_step, 0);
+        assert_eq!(cpu.cycle_step, 1);
         assert_eq!(cpu.pc, 0x0204);
     }
 }
