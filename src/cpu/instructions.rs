@@ -955,6 +955,14 @@ mod tests {
         cpu.cycle_step = 2;
         cpu.p.set(StatusRegister::CARRY, true);
 
+        // Vector is in ROM. Writing $FFFE must not be what supplies $0300.
+        assert_eq!(cpu.read(0xFFFE).unwrap(), 0x00);
+        assert_eq!(cpu.read(0xFFFF).unwrap(), 0x03);
+        cpu.write(0xFFFE, 0xFF).unwrap();
+        cpu.write(0xFFFF, 0xFF).unwrap();
+        assert_eq!(cpu.read(0xFFFE).unwrap(), 0x00);
+        assert_eq!(cpu.read(0xFFFF).unwrap(), 0x03);
+
         brk_op(&mut cpu).unwrap();
         brk_op(&mut cpu).unwrap();
         brk_op(&mut cpu).unwrap();

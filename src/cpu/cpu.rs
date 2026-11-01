@@ -468,18 +468,16 @@ mod tests {
 
     #[test]
     fn test_tick_instruction_sequence() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
-
-        // Workspace is $50-$53 so stores cannot overwrite this program ($0000-$003B)
-        // or the subroutine at $0040.
+        // Program lives in NROM PRG ROM at $8000 so opcode fetches go through the
+        // cartridge, not internal RAM. Workspace is $50-$53 (internal RAM) plus
+        // $6000 (PRG RAM). Subroutine is at $8100 so it cannot overlap the program.
         //
         // LDA #$10 / TAX / TAY / INX / INY / TXA / CLC / ADC #$01 / STA $50 / LDA $50
         // ASL A / LSR A / ORA #$80 / AND #$F0 / EOR #$10 / SEC / SBC #$01
         // PHA / LDA #$00 / PLA / STX $0052 / STY $0053 / CMP #$7F
         // BNE (not taken) / NOP / NOP / BEQ (taken, skips LDA #$AA)
         // LDX #$05 / INC $50 / DEC $50 / BIT $50 / DEY / DEX
-        // JSR $0040 / NOP / NOP
+        // JSR $8100 / NOP / NOP / LDA #$77 / STA $6000 / LDA $6000
         let program = [
             0xA9, 0x10, // LDA #$10
             0xAA,       // TAX
@@ -515,31 +513,43 @@ mod tests {
             0x24, 0x50, // BIT $50
             0x88,       // DEY
             0xCA,       // DEX
-            0x20, 0x40, 0x00, // JSR $0040
+            0x20, 0x00, 0x81, // JSR $8100
             0xEA,       // NOP
             0xEA,       // NOP
+            0xA9, 0x77, // LDA #$77
+            0x8D, 0x00, 0x60, // STA $6000
+            0xAD, 0x00, 0x60, // LDA $6000
         ];
 
-        for (i, byte) in program.iter().enumerate() {
-            cpu.write(0x0000 + i as u16, *byte).unwrap();
-        }
+        let mut prg_rom = vec![0u8; 16 * 1024];
+        prg_rom[..program.len()].copy_from_slice(&program);
 
-        // Subroutine at $0040: LDA #$42 / STA $51 / RTS
-        cpu.write(0x0040, 0xA9).unwrap();
-        cpu.write(0x0041, 0x42).unwrap();
-        cpu.write(0x0042, 0x85).unwrap();
-        cpu.write(0x0043, 0x51).unwrap();
-        cpu.write(0x0044, 0x60).unwrap();
+        // Subroutine at $8100: LDA #$42 / STA $51 / RTS
+        prg_rom[0x0100] = 0xA9;
+        prg_rom[0x0101] = 0x42;
+        prg_rom[0x0102] = 0x85;
+        prg_rom[0x0103] = 0x51;
+        prg_rom[0x0104] = 0x60;
 
-        cpu.pc = 0x0000;
-        run_until(&mut cpu, 0x003C);
+        let cart = test_cartridge_with_prg(&prg_rom);
+        let mut bus = CPUBus::new(std::rc::Rc::clone(&cart));
+        let mut cpu = CPU::new(&mut bus);
 
-        // A=$42 from the subroutine; X/Y after INX/INY, LDX #$05, DEX, DEY
-        assert_eq!(cpu.a, 0x42);
+        // Fetch must come from PRG ROM. A CPU write to $8000 is an NROM no-op, so
+        // this would stay LDA #$10 only if the cart mapping is real.
+        assert_eq!(cpu.read(0x8000).unwrap(), 0xA9);
+        cpu.write(0x8000, 0x00).unwrap();
+        assert_eq!(cpu.read(0x8000).unwrap(), 0xA9);
+
+        cpu.pc = 0x8000;
+        run_until(&mut cpu, 0x8044);
+
+        // A=$77 from the PRG-RAM load; X/Y after INX/INY, LDX #$05, DEX, DEY
+        assert_eq!(cpu.a, 0x77);
         assert_eq!(cpu.x, 0x04);
         assert_eq!(cpu.y, 0x10);
         assert_eq!(cpu.sp, 0xFD);
-        assert_eq!(cpu.pc, 0x003C);
+        assert_eq!(cpu.pc, 0x8044);
         assert_eq!(cpu.cycle_step, 1);
 
         // $50 ended at $12 (STA $12, INC, DEC). $51 written by the JSR target.
@@ -549,7 +559,11 @@ mod tests {
         assert_eq!(cpu.read(0x0052).unwrap(), 0x11);
         assert_eq!(cpu.read(0x0053).unwrap(), 0x11);
 
-        // CMP left C set. LDA #$42 left Z and N clear. BIT $30 cleared V.
+        // $6000 must land in the mapper, not only look correct through CPUBus.
+        assert_eq!(cpu.read(0x6000).unwrap(), 0x77);
+        assert_eq!(cart.borrow().cpu_read(0x6000).unwrap(), 0x77);
+
+        // CMP left C set. LDA #$77 left Z and N clear. BIT $50 cleared V.
         assert!(cpu.p.contains(StatusRegister::CARRY));
         assert!(!cpu.p.contains(StatusRegister::ZERO));
         assert!(!cpu.p.contains(StatusRegister::NEGATIVE));
