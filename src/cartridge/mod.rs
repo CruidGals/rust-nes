@@ -3,6 +3,7 @@
  */
 
 pub mod mapper;
+pub mod mappers;
 
 use mapper::Mapper;
 
@@ -26,20 +27,18 @@ impl Cartridge {
     }
 
     pub fn cpu_read(&self, addr: u16) -> Result<u8, String> {
-        Ok(self.mapper.cpu_read(addr)) // TODO
+        self.mapper.cpu_read(addr) // TODO
     }
 
     pub fn cpu_write(&mut self, addr: u16, value: u8) -> Result<(), String> {
-        self.mapper.cpu_write(addr, value);
-        Ok(())
+        self.mapper.cpu_write(addr, value)
     }
 
     pub fn ppu_read(&self, addr: u16) -> Result<u8, String> {
-        Ok(self.mapper.ppu_read(addr)) // TODO
+        self.mapper.ppu_read(addr) // TODO
     }
 
     pub fn ppu_write(&mut self, addr: u16, value: u8) -> Result<(), String> {
-        self.mapper.ppu_write(addr, value);
-        Ok(())
+        self.mapper.ppu_write(addr, value)
     }
 }
