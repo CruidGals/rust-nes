@@ -1232,12 +1232,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cpu::{cpu::CPU, cpubus::CPUBus};
+    use crate::cpu::{cpu::{test_cartridge, CPU}, cpubus::CPUBus};
     use std::cell::Cell;
 
     #[test]
     fn test_absolute_indexed_x_addr_r_no_page_cross() {
-        let mut bus = CPUBus::new();
+        let mut bus = CPUBus::new(test_cartridge());
         let mut cpu = CPU::new(&mut bus);
 
         // Base $0100 + X = $05 → $0105, no page cross
@@ -1270,7 +1270,7 @@ mod tests {
 
     #[test]
     fn test_absolute_indexed_x_addr_r_page_cross() {
-        let mut bus = CPUBus::new();
+        let mut bus = CPUBus::new(test_cartridge());
         let mut cpu = CPU::new(&mut bus);
 
         // Base $01FE + X = $05 → dummy $0103, real $0203
@@ -1311,7 +1311,7 @@ mod tests {
 
     #[test]
     fn test_absolute_indexed_x_addr_w_no_page_cross() {
-        let mut bus = CPUBus::new();
+        let mut bus = CPUBus::new(test_cartridge());
         let mut cpu = CPU::new(&mut bus);
 
         // Base $0100 + X = $05 → still 5 cycles, dummy read on cycle 4
@@ -1346,7 +1346,7 @@ mod tests {
 
     #[test]
     fn test_absolute_indexed_x_addr_w_page_cross() {
-        let mut bus = CPUBus::new();
+        let mut bus = CPUBus::new(test_cartridge());
         let mut cpu = CPU::new(&mut bus);
 
         // Base $01FE + X = $05 → dummy $0103, write $0203
@@ -1384,7 +1384,7 @@ mod tests {
 
     #[test]
     fn test_zero_page_addr_rmw_dummy_write() {
-        let mut bus = CPUBus::new();
+        let mut bus = CPUBus::new(test_cartridge());
         let mut cpu = CPU::new(&mut bus);
 
         cpu.pc = 0x0000;
@@ -1418,7 +1418,7 @@ mod tests {
 
     #[test]
     fn test_relative_addr_not_taken() {
-        let mut bus = CPUBus::new();
+        let mut bus = CPUBus::new(test_cartridge());
         let mut cpu = CPU::new(&mut bus);
 
         cpu.pc = 0x0100;
@@ -1435,7 +1435,7 @@ mod tests {
 
     #[test]
     fn test_relative_addr_taken_same_page() {
-        let mut bus = CPUBus::new();
+        let mut bus = CPUBus::new(test_cartridge());
         let mut cpu = CPU::new(&mut bus);
 
         cpu.pc = 0x0100;
@@ -1457,7 +1457,7 @@ mod tests {
 
     #[test]
     fn test_relative_addr_taken_page_cross() {
-        let mut bus = CPUBus::new();
+        let mut bus = CPUBus::new(test_cartridge());
         let mut cpu = CPU::new(&mut bus);
 
         // Offset at $01FE; after the increment, PC is $01FF + $05 → $0204

@@ -17,6 +17,7 @@ const PRG_RAM_MAX_SIZE: usize = 4 * 1024;
 /// Size of the CHR_ROM for NROM, which is 8K.
 const CHR_ROM_MAX_SIZE: usize = 8 * 1024;
 
+#[derive(Debug)]
 pub struct NROM {
     prg_rom: Vec<u8>,
     prg_ram: Vec<u8>,

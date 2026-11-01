@@ -21,7 +21,7 @@ pub fn initialize_memory(name: &str, size: usize, memory: &[u8]) -> Result<Vec<u
     Ok(vec)
 }
 
-pub trait Mapper {
+pub trait Mapper: std::fmt::Debug {
     /// Wrapper function to capture CPU reads to PRG_ROM and PRG_RAM. The raw CPU 
     /// read address must be preserved in the addr argument (e.g a 0x8000 should 
     /// be passed in as 0x8000 rather than 0x0000). Structs that implement this 

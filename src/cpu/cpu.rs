@@ -424,6 +424,31 @@ impl<'bus> CPU<'bus> {
 }
 
 #[cfg(test)]
+pub(crate) fn test_cartridge() -> std::rc::Rc<std::cell::RefCell<crate::cartridge::Cartridge>> {
+    test_cartridge_with_prg(&[])
+}
+
+#[cfg(test)]
+pub(crate) fn test_cartridge_with_prg(
+    prg_rom: &[u8],
+) -> std::rc::Rc<std::cell::RefCell<crate::cartridge::Cartridge>> {
+    std::rc::Rc::new(std::cell::RefCell::new(
+        crate::cartridge::Cartridge::new(
+            0,
+            16 * 1024,
+            2 * 1024,
+            8 * 1024,
+            0,
+            prg_rom,
+            &[],
+            &[],
+            &[],
+        )
+        .unwrap(),
+    ))
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::cpu::cpubus::CPUBus;
@@ -443,7 +468,7 @@ mod tests {
 
     #[test]
     fn test_tick_instruction_sequence() {
-        let mut bus = CPUBus::new();
+        let mut bus = CPUBus::new(test_cartridge());
         let mut cpu = CPU::new(&mut bus);
 
         // Workspace is $50-$53 so stores cannot overwrite this program ($0000-$003B)
