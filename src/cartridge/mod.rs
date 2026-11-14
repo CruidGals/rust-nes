@@ -88,21 +88,19 @@ impl Cartridge {
         let chr_rom = &rom[chr_rom_offset..chr_rom_offset + chr_rom_size];
         
         // Load in RAM (if present in .sav file) TODO
-        let mut prg_ram = vec![0u8; prg_ram_size];
+        let prg_ram = vec![0u8; prg_ram_size];
         let chr_ram = vec![0u8; chr_ram_size];
 
         // Overwrite PRG_RAM with trainer data (if available)
         // This occupies ram from $7000 - &71FF, so offset this by $6000
         let mut trainer_data = if has_trainer { Some(rom[16..16 + trainer_size].to_vec()) } else { None };
-        if prg_ram_size >= 0x1200 && let Some(data) = trainer_data.take() {
-            prg_ram[0x1000..=0x11FF].copy_from_slice(&data);
-        }
+        let prg_ram_trainer_data = if prg_ram_size >= 0x1200 {trainer_data.take()} else {None};
 
         Ok(Cartridge { 
             nametable_arrangement: nametable_arrangement, 
             has_persistent_ram: has_persistent_ram,
             ignore_mirroring: ignore_mirroring, 
-            mapper: choose_mapper(u16::from(mapper & 0x0F), prg_rom_size, prg_ram_size, chr_rom_size, chr_ram_size, prg_rom, &prg_ram, chr_rom, &chr_ram)?,
+            mapper: choose_mapper(u16::from(mapper & 0x0F), 0, prg_rom_size, prg_ram_size, chr_rom_size, chr_ram_size, prg_rom, &prg_ram, chr_rom, &chr_ram, prg_ram_trainer_data)?,
             trainer_data: trainer_data
         })
     }
@@ -138,21 +136,19 @@ impl Cartridge {
         let chr_rom = &rom[chr_rom_offset..chr_rom_offset + chr_rom_size];
         
         // Load in RAM (if present in .sav file) TODO
-        let mut prg_ram = vec![0u8; prg_ram_size];
+        let prg_ram = vec![0u8; prg_ram_size];
         let chr_ram = vec![0u8; chr_ram_size];
 
         // Overwrite PRG_RAM with trainer data (if available)
         // This occupies ram from $7000 - &71FF, so offset this by $6000
         let mut trainer_data = if has_trainer { Some(rom[16..16 + trainer_size].to_vec()) } else { None };
-        if prg_ram_size >= 0x1200 && let Some(data) = trainer_data.take() {
-            prg_ram[0x1000..=0x11FF].copy_from_slice(&data);
-        }
+        let prg_ram_trainer_data = if prg_ram_size >= 0x1200 {trainer_data.take()} else {None};
 
         Ok(Cartridge { 
             nametable_arrangement: nametable_arrangement, 
             has_persistent_ram: has_persistent_ram,
             ignore_mirroring: ignore_mirroring, 
-            mapper: choose_mapper(u16::from(mapper), prg_rom_size, prg_ram_size, chr_rom_size, chr_ram_size, prg_rom, &prg_ram, chr_rom, &chr_ram)?,
+            mapper: choose_mapper(u16::from(mapper), 0, prg_rom_size, prg_ram_size, chr_rom_size, chr_ram_size, prg_rom, &prg_ram, chr_rom, &chr_ram, prg_ram_trainer_data)?,
             trainer_data: trainer_data
         })
     }
