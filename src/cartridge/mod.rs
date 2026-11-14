@@ -50,14 +50,66 @@ impl Cartridge {
         // Split parsing between NES and NES 2.0
         if rom[7] & 0x0C == 0x08 { 
             Cartridge::parse_ines_20(rom, nametable_arrangement, has_persistent_ram, has_trainer, ignore_mirroring, mapper) 
-        } else { 
+        } else if rom[7] & 0x0C == 0x00 && rom[12..=15].iter().all(|&val| val == 0) { 
             Cartridge::parse_ines(rom, nametable_arrangement, has_persistent_ram, has_trainer, ignore_mirroring, mapper) 
+        } else {
+            Cartridge::parse_archaic_ines(rom, nametable_arrangement, has_persistent_ram, has_trainer, ignore_mirroring, mapper)
         }
+    }
+
+    fn parse_archaic_ines(
+        rom: &[u8], 
+        nametable_arrangement: NametableArrangement, 
+        has_persistent_ram: bool, 
+        has_trainer: bool, 
+        ignore_mirroring: bool, 
+        mapper: u8
+    ) -> Result<Self, String> {
+        let prg_banks = rom[4];
+        let chr_banks = rom[5];
+        
+        // Get the size for each
+        let prg_rom_size: usize = (prg_banks as usize) * 16 * 1024; // In 16kb units
+        let prg_ram_size: usize = 8 * 1024; // Ignore byte 0
+        let chr_rom_size: usize = (chr_banks as usize) * 8 * 1024;
+        let chr_ram_size: usize = if chr_banks == 0 { 8 * 1024 } else { 0 }; // Defaults to 8192 if no chr rom specified
+        let trainer_size: usize = if has_trainer {512} else {0};
+
+        // Ensure that the size is exact and expected
+        if rom.len() != (16 + trainer_size + prg_rom_size + chr_rom_size) {
+            return Err(format!("ROM is not of expected size. Check that the size matches what is defined in the header."));
+        }
+
+        // Extract ROM
+        let prg_rom_offset = 16 + trainer_size;
+        let prg_rom = &rom[prg_rom_offset..prg_rom_offset + prg_rom_size];
+
+        let chr_rom_offset = prg_rom_offset + prg_rom_size;
+        let chr_rom = &rom[chr_rom_offset..chr_rom_offset + chr_rom_size];
+        
+        // Load in RAM (if present in .sav file) TODO
+        let mut prg_ram = vec![0u8; prg_ram_size];
+        let chr_ram = vec![0u8; chr_ram_size];
+
+        // Overwrite PRG_RAM with trainer data (if available)
+        // This occupies ram from $7000 - &71FF, so offset this by $6000
+        let mut trainer_data = if has_trainer { Some(rom[16..16 + trainer_size].to_vec()) } else { None };
+        if prg_ram_size >= 0x1200 && let Some(data) = trainer_data.take() {
+            prg_ram[0x1000..=0x11FF].copy_from_slice(&data);
+        }
+
+        Ok(Cartridge { 
+            nametable_arrangement: nametable_arrangement, 
+            has_persistent_ram: has_persistent_ram,
+            ignore_mirroring: ignore_mirroring, 
+            mapper: choose_mapper(u16::from(mapper & 0x0F), prg_rom_size, prg_ram_size, chr_rom_size, chr_ram_size, prg_rom, &prg_ram, chr_rom, &chr_ram)?,
+            trainer_data: trainer_data
+        })
     }
 
     fn parse_ines(
         rom: &[u8], 
-        nametable_arrangment: NametableArrangement, 
+        nametable_arrangement: NametableArrangement, 
         has_persistent_ram: bool, 
         has_trainer: bool, 
         ignore_mirroring: bool, 
@@ -97,7 +149,7 @@ impl Cartridge {
         }
 
         Ok(Cartridge { 
-            nametable_arrangement: nametable_arrangment, 
+            nametable_arrangement: nametable_arrangement, 
             has_persistent_ram: has_persistent_ram,
             ignore_mirroring: ignore_mirroring, 
             mapper: choose_mapper(u16::from(mapper), prg_rom_size, prg_ram_size, chr_rom_size, chr_ram_size, prg_rom, &prg_ram, chr_rom, &chr_ram)?,
@@ -288,5 +340,25 @@ mod tests {
         let rom = ines_image(INES_MAGIC, 1, 1, 0x21, None, 0x22, 0x33);
         let err = Cartridge::from_ines(&rom).unwrap_err();
         assert!(err.contains("33"), "{err}");
+    }
+
+    #[test]
+    fn test_from_ines_archaic_header_masks_mapper_and_ignores_prg_ram_byte() {
+        // "DiskDude!" at bytes 7-15: 'D' would make mapper 64, 'i' would ask for 840 KB of PRG RAM.
+        let mut rom = ines_image(INES_MAGIC, 1, 1, 0, None, 0x22, 0x33);
+        rom[7..16].copy_from_slice(b"DiskDude!");
+
+        let mut cart = Cartridge::from_ines(&rom).unwrap();
+        assert_eq!(cart.cpu_read(0x8000).unwrap(), 0x22);
+        assert_eq!(cart.ppu_read(0x0000).unwrap(), 0x33);
+        cart.cpu_write(0x6000, 0x42).unwrap();
+        cart.cpu_write(0x7000, 0x99).unwrap();
+        assert_eq!(cart.cpu_read(0x6000).unwrap(), 0x42);
+        assert_eq!(cart.cpu_read(0x7000).unwrap(), 0x99);
+
+        // Low nibble from byte 6 is kept. 0x10 | junk high nibble must be mapper 1, not 65.
+        rom[6] |= 0x10;
+        let err = Cartridge::from_ines(&rom).unwrap_err();
+        assert_eq!(err, "Invalid mapper number: 1");
     }
 }
