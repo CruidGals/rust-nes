@@ -432,19 +432,20 @@ pub(crate) fn test_cartridge() -> std::rc::Rc<std::cell::RefCell<crate::cartridg
 pub(crate) fn test_cartridge_with_prg(
     prg_rom: &[u8],
 ) -> std::rc::Rc<std::cell::RefCell<crate::cartridge::Cartridge>> {
+    const PRG_BANK: usize = 16 * 1024;
+    const CHR_BANK: usize = 8 * 1024;
+
+    let prg_banks = (prg_rom.len().max(1) + PRG_BANK - 1) / PRG_BANK;
+    assert!(prg_banks <= 2, "NROM PRG ROM is at most 32KB");
+
+    let mut rom = vec![0u8; 16 + prg_banks * PRG_BANK + CHR_BANK];
+    rom[..4].copy_from_slice(b"NES\x1A");
+    rom[4] = prg_banks as u8;
+    rom[5] = 1;
+    rom[16..16 + prg_rom.len()].copy_from_slice(prg_rom);
+
     std::rc::Rc::new(std::cell::RefCell::new(
-        crate::cartridge::Cartridge::new(
-            0,
-            16 * 1024,
-            2 * 1024,
-            8 * 1024,
-            0,
-            prg_rom,
-            &[],
-            &[],
-            &[],
-        )
-        .unwrap(),
+        crate::cartridge::Cartridge::new(&rom).unwrap(),
     ))
 }
 

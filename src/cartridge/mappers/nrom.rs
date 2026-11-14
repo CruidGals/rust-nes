@@ -10,9 +10,9 @@ use super::initialize_memory;
 /// for simplicity sake we set it to the max that it can be.
 const PRG_ROM_MAX_SIZE: usize = 32 * 1024;
 
-/// Size of the PRG_RAM for NROM. The size is 2K - 4K, for
-/// simplicity sake we set it to the max that it can be.
-const PRG_RAM_MAX_SIZE: usize = 4 * 1024;
+/// Size of the PRG_RAM for NROM. Boards are 2K, 4K, or 8K.
+/// iNES treats a PRG-RAM size of 0 as 8K, so the max is 8K.
+const PRG_RAM_MAX_SIZE: usize = 8 * 1024;
 
 /// Size of the CHR_ROM for NROM, which is 8K.
 const CHR_ROM_MAX_SIZE: usize = 8 * 1024;
