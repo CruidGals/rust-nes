@@ -8,7 +8,7 @@ pub mod mappers;
 use mapper::Mapper;
 use mappers::choose_mapper;
 
-use crate::cartridge::NametableArrangement::{Horizontal, Vertical};
+use crate::cartridge::{NametableArrangement::{Horizontal, Vertical}};
 
 // TODO: Keep this here, move it somewhere else later
 #[derive(Debug)]
@@ -82,10 +82,10 @@ impl Cartridge {
 
         // Extract ROM
         let prg_rom_offset = 16 + trainer_size;
-        let prg_rom = &rom[prg_rom_offset..prg_rom_offset + prg_rom_size];
+        let prg_rom = rom[prg_rom_offset..prg_rom_offset + prg_rom_size].to_vec();
 
         let chr_rom_offset = prg_rom_offset + prg_rom_size;
-        let chr_rom = &rom[chr_rom_offset..chr_rom_offset + chr_rom_size];
+        let chr_rom = rom[chr_rom_offset..chr_rom_offset + chr_rom_size].to_vec();
         
         // Load in RAM (if present in .sav file) TODO
         let prg_ram = vec![0u8; prg_ram_size];
@@ -100,7 +100,16 @@ impl Cartridge {
             nametable_arrangement: nametable_arrangement, 
             has_persistent_ram: has_persistent_ram,
             ignore_mirroring: ignore_mirroring, 
-            mapper: choose_mapper(u16::from(mapper & 0x0F), 0, prg_rom_size, prg_ram_size, chr_rom_size, chr_ram_size, prg_rom, &prg_ram, chr_rom, &chr_ram, prg_ram_trainer_data)?,
+            mapper: choose_mapper(
+                u16::from(mapper & 0x0F),
+                0,
+                prg_rom,
+                chr_rom,
+                prg_ram,
+                chr_ram,
+                vec![],
+                vec![],
+                prg_ram_trainer_data)?,
             trainer_data: trainer_data
         })
     }
@@ -130,10 +139,10 @@ impl Cartridge {
 
         // Extract ROM
         let prg_rom_offset = 16 + trainer_size;
-        let prg_rom = &rom[prg_rom_offset..prg_rom_offset + prg_rom_size];
+        let prg_rom = rom[prg_rom_offset..prg_rom_offset + prg_rom_size].to_vec();
 
         let chr_rom_offset = prg_rom_offset + prg_rom_size;
-        let chr_rom = &rom[chr_rom_offset..chr_rom_offset + chr_rom_size];
+        let chr_rom = rom[chr_rom_offset..chr_rom_offset + chr_rom_size].to_vec();
         
         // Load in RAM (if present in .sav file) TODO
         let prg_ram = vec![0u8; prg_ram_size];
@@ -148,13 +157,96 @@ impl Cartridge {
             nametable_arrangement: nametable_arrangement, 
             has_persistent_ram: has_persistent_ram,
             ignore_mirroring: ignore_mirroring, 
-            mapper: choose_mapper(u16::from(mapper), 0, prg_rom_size, prg_ram_size, chr_rom_size, chr_ram_size, prg_rom, &prg_ram, chr_rom, &chr_ram, prg_ram_trainer_data)?,
+            mapper: choose_mapper(
+                u16::from(mapper),
+                0,
+                prg_rom,
+                chr_rom,
+                prg_ram,
+                chr_ram,
+                vec![],
+                vec![],
+                prg_ram_trainer_data)?,
             trainer_data: trainer_data
         })
     }
 
-    fn parse_ines_20(rom: &[u8], nametable_arrangment: NametableArrangement, has_persistent_ram: bool, has_trainer: bool, ignore_mirroring: bool, mapper: u8) -> Result<Self, String> {
-        todo!()
+    fn parse_ines_20(
+        rom: &[u8],
+        nametable_arrangement: NametableArrangement,
+        has_persistent_ram: bool,
+        has_trainer: bool,
+        ignore_mirroring: bool,
+        mapper: u8
+    ) -> Result<Self, String> {
+        // Get size for all banks
+        let prg_rom_size: usize = if rom[9] & 0x0F == 0x0F { 
+            Cartridge::exponent_size(rom[4])? 
+        } else {
+            let size = (u16::from(rom[9] & 0x0F) << 8) | u16::from(rom[4]);
+            usize::from(size) * 16 * 1024 
+        };
+
+        let chr_rom_size: usize = if rom[9] & 0xF0 == 0xF0 { 
+            Cartridge::exponent_size(rom[5])? 
+        } else {
+            let size = (u16::from(rom[9] & 0xF0) << 4) | u16::from(rom[5]);
+            usize::from(size) * 8 * 1024 
+        };
+
+        let prg_ram_size: usize = if rom[10] & 0x0F == 0 { 0 } else { 64 << usize::from(rom[10] & 0x0F) };
+        let prg_nvram_size: usize = if rom[10] >> 4 == 0 { 0 } else { 64 << usize::from(rom[10] >> 4) };
+        let chr_ram_size: usize = if rom[11] & 0x0F == 0 { 0 } else { 64 << usize::from(rom[11] & 0x0F) };
+        let chr_nvram_size: usize = if rom[11] >> 4 == 0 { 0 } else { 64 << usize::from(rom[11] >> 4) };
+        let trainer_size: usize = if has_trainer {512} else {0};
+
+        // Ensure that the size is exact and expected
+        if rom.len() != (16 + trainer_size + prg_rom_size + chr_rom_size) {
+            return Err(format!("ROM is not of expected size. Check that the size matches what is defined in the header."));
+        }
+
+        // Extract ROM
+        let prg_rom_offset = 16 + trainer_size;
+        let prg_rom = rom[prg_rom_offset..prg_rom_offset + prg_rom_size].to_vec();
+
+        let chr_rom_offset = prg_rom_offset + prg_rom_size;
+        let chr_rom = rom[chr_rom_offset..chr_rom_offset + chr_rom_size].to_vec();
+
+        // TODO: load ram with associated .sav file of the rom if present
+        let prg_ram = vec![0u8; prg_ram_size];
+        let prg_nvram = vec![0u8; prg_nvram_size];
+        let chr_ram = vec![0u8; chr_ram_size];
+        let chr_nvram = vec![0u8; chr_nvram_size];
+
+        // Overwrite PRG_RAM with trainer data (if available)
+        // This occupies ram from $7000 - &71FF, so offset this by $6000
+        let mut trainer_data = if has_trainer { Some(rom[16..16 + trainer_size].to_vec()) } else { None };
+        let prg_ram_trainer_data = if prg_ram_size >= 0x1200 {trainer_data.take()} else {None};
+
+        Ok(Cartridge { 
+            nametable_arrangement: nametable_arrangement, 
+            has_persistent_ram: has_persistent_ram,
+            ignore_mirroring: ignore_mirroring, 
+            mapper: choose_mapper(
+                u16::from(mapper),
+                0,
+                prg_rom,
+                chr_rom,
+                prg_ram,
+                chr_ram,
+                prg_nvram,
+                chr_nvram,
+                prg_ram_trainer_data)?,
+            trainer_data: None
+        })
+    }
+
+    /// Helper function to calculate exponent size for PRG_ROM and CHR_ROM in NES2.0
+    fn exponent_size(byte: u8) -> Result<usize, String> {
+        let exponent = u32::from(byte >> 2);
+        let multiplier: usize = usize::from(byte & 0x03) * 2 + 1;
+        let base = 1usize.checked_shl(exponent).ok_or("ROM size exponent does not fit system usize.")?;
+        base.checked_mul(multiplier).ok_or("ROM size does not fit usize".to_string())
     }
 
     /// Saves the contents of the PRG and CHR ram

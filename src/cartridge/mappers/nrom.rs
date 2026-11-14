@@ -4,7 +4,6 @@
 
 use super::Mapper;
 use super::check_size;
-use super::initialize_memory;
 
 /// Size of the PRG_ROM for NROM. This is either 16K or 32K,
 /// for simplicity sake we set it to the max that it can be.
@@ -25,13 +24,13 @@ pub struct NROM {
 }
 
 impl NROM {
-    pub fn new(prg_rom_size: usize, prg_ram_size: usize, chr_rom_size: usize, prg_rom: &[u8], prg_ram: &[u8], chr_rom: &[u8], trainer_data: Option<Vec<u8>>) -> Result<NROM, String> {
-        // Perform size checks
-        check_size("PRG_ROM", prg_rom_size, PRG_ROM_MAX_SIZE)?;
-        check_size("PRG_RAM", prg_ram_size, PRG_RAM_MAX_SIZE)?;
-        check_size("CHR_ROM", chr_rom_size, CHR_ROM_MAX_SIZE)?;
+    pub fn new(prg_rom: Vec<u8>, chr_rom: Vec<u8>, prg_ram: Vec<u8>, trainer_data: Option<Vec<u8>>) -> Result<NROM, String> {
+        check_size("PRG_ROM", prg_rom.len(), PRG_ROM_MAX_SIZE)?;
+        check_size("PRG_RAM", prg_ram.len(), PRG_RAM_MAX_SIZE)?;
+        check_size("CHR_ROM", chr_rom.len(), CHR_ROM_MAX_SIZE)?;
 
-        let mut prg_ram = initialize_memory("PRG_RAM", prg_ram_size, prg_ram)?;
+        // Intialize trainer memory separately
+        let mut prg_ram = prg_ram;
         if let Some(data) = trainer_data {
             if prg_ram.len() < 0x1200 {
                 return Err(format!("PRG_RAM size is not large enough to carry trainer data: size is {} bytes.", prg_ram.len()));
@@ -40,9 +39,9 @@ impl NROM {
         }
 
         Ok(NROM { 
-            prg_rom: initialize_memory("PRG_ROM", prg_rom_size, prg_rom)?, 
+            prg_rom: prg_rom,
             prg_ram: prg_ram,
-            chr_rom: initialize_memory("CHR_ROM", chr_rom_size, chr_rom)? 
+            chr_rom: chr_rom
         })
     }
 }
@@ -103,7 +102,7 @@ mod tests {
 
     fn new_nrom(prg_rom_size: usize, prg_ram_size: usize, chr_rom_size: usize) -> Result<NROM, String> {
         let (prg_rom, prg_ram, chr_rom) = garbage_banks(prg_rom_size, prg_ram_size, chr_rom_size);
-        NROM::new(prg_rom_size, prg_ram_size, chr_rom_size, &prg_rom, &prg_ram, &chr_rom, None)
+        NROM::new(prg_rom, chr_rom, prg_ram, None)
     }
 
     #[test]
@@ -113,7 +112,7 @@ mod tests {
         let chr_rom_size = 8 * 1024;
         let (prg_rom, prg_ram, chr_rom) = garbage_banks(prg_rom_size, prg_ram_size, chr_rom_size);
 
-        let nrom = NROM::new(prg_rom_size, prg_ram_size, chr_rom_size, &prg_rom, &prg_ram, &chr_rom, None).unwrap();
+        let nrom = NROM::new(prg_rom.clone(), chr_rom.clone(), prg_ram.clone(), None).unwrap();
 
         assert_eq!(nrom.prg_rom, prg_rom);
         assert_eq!(nrom.prg_ram, prg_ram);

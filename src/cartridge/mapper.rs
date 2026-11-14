@@ -12,15 +12,6 @@ pub fn check_size(name: &str, size: usize, max_size: usize) -> Result<(), String
     }
 }
 
-pub fn initialize_memory(name: &str, size: usize, memory: &[u8]) -> Result<Vec<u8>, String> {
-    check_size(format!("{name} initialized memory").as_str(), memory.len(), size)?;
-
-    // Make the vector
-    let mut vec = vec![0u8; size];
-    vec[..memory.len()].copy_from_slice(memory);
-    Ok(vec)
-}
-
 pub trait Mapper: std::fmt::Debug {
     /// Wrapper function to capture CPU reads to PRG_ROM and PRG_RAM. The raw CPU 
     /// read address must be preserved in the addr argument (e.g a 0x8000 should 
@@ -52,18 +43,5 @@ mod tests {
         assert!(check_size("PRG_ROM", 16 * 1024, 32 * 1024).is_ok());
         assert!(check_size("PRG_ROM", 32 * 1024, 32 * 1024).is_ok());
         assert!(check_size("PRG_ROM", 32 * 1024 + 1, 32 * 1024).is_err());
-    }
-
-    #[test]
-    fn test_initialize_memory() {
-        let data = [0xAA, 0xBB, 0xCC];
-
-        let exact = initialize_memory("PRG_ROM", 3, &data).unwrap();
-        assert_eq!(exact, vec![0xAA, 0xBB, 0xCC]);
-
-        let padded = initialize_memory("PRG_ROM", 5, &data).unwrap();
-        assert_eq!(padded, vec![0xAA, 0xBB, 0xCC, 0x00, 0x00]);
-
-        assert!(initialize_memory("PRG_ROM", 2, &data).is_err());
     }
 }

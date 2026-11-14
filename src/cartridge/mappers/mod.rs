@@ -8,23 +8,21 @@
  */
 mod nrom;
 
-use super::mapper::{Mapper, check_size, initialize_memory};
+use super::mapper::{Mapper, check_size};
 
 pub fn choose_mapper(
     mapper_number: u16, 
     submapper_number: u8,
-    prg_rom_size: usize, 
-    prg_ram_size: usize, 
-    chr_rom_size: usize, 
-    chr_ram_size: usize,
-    prg_rom: &[u8],
-    prg_ram: &[u8],
-    chr_rom: &[u8],
-    chr_ram: &[u8],
+    prg_rom: Vec<u8>,
+    chr_rom: Vec<u8>,
+    prg_ram: Vec<u8>,
+    chr_ram: Vec<u8>,
+    prg_nvram: Vec<u8>,
+    chr_nvram: Vec<u8>,
     trainer_data: Option<Vec<u8>>,
 ) -> Result<Box<dyn Mapper>, String> {
     match (mapper_number, submapper_number) {
-        (0, 0) => Ok(Box::new(nrom::NROM::new(prg_rom_size, prg_ram_size, chr_rom_size, prg_rom, prg_ram, chr_rom, trainer_data)?)),
+        (0, 0) => Ok(Box::new(nrom::NROM::new(prg_rom, chr_rom, prg_ram, trainer_data)?)),
         _ => Err(format!("Invalid mapper number: {mapper_number}"))
     }
 }
