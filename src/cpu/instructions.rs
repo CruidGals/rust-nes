@@ -622,8 +622,8 @@ mod tests {
 
     #[test]
     fn test_adc_op_overflow() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         cpu.a = 0x50;
         adc_op(&mut cpu, 0x50);
@@ -640,8 +640,8 @@ mod tests {
 
     #[test]
     fn test_adc_op_unsigned_carry() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         cpu.a = 0xFF;
         adc_op(&mut cpu, 0x01);
@@ -658,8 +658,8 @@ mod tests {
 
     #[test]
     fn test_adc_op_existing_carry() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         cpu.a = 0xFD;
         cpu.p.set(StatusRegister::CARRY, true);
@@ -677,8 +677,8 @@ mod tests {
 
     #[test]
     fn test_sbc_op_borrow() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         // C = 1 means no incoming borrow
         cpu.a = 0x50;
@@ -697,8 +697,8 @@ mod tests {
 
     #[test]
     fn test_bit_op_nv_from_operand() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         // A & value == 0, but bits 7 and 6 of the operand are set
         cpu.a = 0x00;
@@ -715,8 +715,8 @@ mod tests {
 
     #[test]
     fn test_bit_op_zero_from_and() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         // Same operand bits 7/6, but A & value != 0
         cpu.a = 0xC0;
@@ -733,8 +733,8 @@ mod tests {
 
     #[test]
     fn test_cmp_op_register_greater() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         cpu.a = 0x50;
         cmp_op(&mut cpu, 0x20);
@@ -750,8 +750,8 @@ mod tests {
 
     #[test]
     fn test_cmp_op_register_equal() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         cpu.a = 0x50;
         cmp_op(&mut cpu, 0x50);
@@ -767,8 +767,8 @@ mod tests {
 
     #[test]
     fn test_cmp_op_register_less() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         cpu.a = 0x20;
         cmp_op(&mut cpu, 0x50);
@@ -784,8 +784,8 @@ mod tests {
 
     #[test]
     fn test_rol_op_carry_through() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         // Bit 7 shifts into C; previous C shifts into bit 0
         cpu.p.set(StatusRegister::CARRY, true);
@@ -802,8 +802,8 @@ mod tests {
 
     #[test]
     fn test_ror_op_carry_through() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         // Bit 0 shifts into C; previous C shifts into bit 7
         cpu.p.set(StatusRegister::CARRY, true);
@@ -820,8 +820,8 @@ mod tests {
 
     #[test]
     fn test_jmp_op_indirect_page_wrap() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         // JMP ($02FF): low byte at $02FF, high byte wraps to $0200
         cpu.pc = 0x0000;
@@ -844,8 +844,8 @@ mod tests {
 
     #[test]
     fn test_jsr_op_pushes_third_byte() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         // JSR $1234 at $01FF: operands at $0200/$0201; third byte is $0201
         cpu.pc = 0x0200;
@@ -870,8 +870,8 @@ mod tests {
 
     #[test]
     fn test_rts_op_pulls_and_increments_pc() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         // Stack holds the JSR-style return address $0201
         cpu.pc = 0x0000;
@@ -894,8 +894,8 @@ mod tests {
 
     #[test]
     fn test_php_op_sets_break_and_unused() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         cpu.pc = 0x0000;
         cpu.sp = 0xFD;
@@ -916,8 +916,8 @@ mod tests {
 
     #[test]
     fn test_plp_op_clears_break_sets_unused() {
-        let mut bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge());
+        let mut cpu = CPU::new(bus);
 
         // Stack byte has B set and unused clear
         cpu.pc = 0x0000;
@@ -946,8 +946,8 @@ mod tests {
         let mut prg_rom = vec![0u8; 16 * 1024];
         prg_rom[0x3FFE] = 0x00;
         prg_rom[0x3FFF] = 0x03;
-        let mut bus = CPUBus::new(test_cartridge_with_prg(&prg_rom));
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(test_cartridge_with_prg(&prg_rom));
+        let mut cpu = CPU::new(bus);
 
         // BRK at $0200: after the opcode fetch, PC is $0201 and BRK pushes PC + 2
         cpu.pc = 0x0201;

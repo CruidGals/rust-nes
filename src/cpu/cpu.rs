@@ -20,7 +20,7 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub struct CPU<'bus> {
+pub struct CPU {
     /* Registers */
     pub a: u8, /* Accumulator */
     pub x: u8, /* X-Indexed register */
@@ -39,11 +39,11 @@ pub struct CPU<'bus> {
     pub alu_buffer: u8, /* buffer used to perform ops with ALU */
 
     /* Wiring */
-    pub bus: &'bus mut CPUBus,
+    pub bus: CPUBus,
 }
 
-impl<'bus> CPU<'bus> {
-    pub fn new(cpu_bus: &'bus mut CPUBus) -> Self {
+impl CPU {
+    pub fn new(cpu_bus: CPUBus) -> Self {
         Self {
             a: 0,
             x: 0,
@@ -355,7 +355,7 @@ impl<'bus> CPU<'bus> {
 }
 
 // Instruction specific functions
-impl<'bus> CPU<'bus> {
+impl CPU {
     ///
     /// Steps through a cycle in the instruction. Increments cycle_step
     /// 
@@ -396,7 +396,7 @@ impl<'bus> CPU<'bus> {
 
 // Separate functions for navigating pointers and
 // simplifying semantics
-impl<'bus> CPU<'bus> {
+impl CPU {
     #[inline]
     pub fn increment_pc(&mut self) -> () {
         self.pc = self.pc.wrapping_add(1);
@@ -533,8 +533,8 @@ mod tests {
         prg_rom[0x0104] = 0x60;
 
         let cart = test_cartridge_with_prg(&prg_rom);
-        let mut bus = CPUBus::new(std::rc::Rc::clone(&cart));
-        let mut cpu = CPU::new(&mut bus);
+        let bus = CPUBus::new(std::rc::Rc::clone(&cart));
+        let mut cpu = CPU::new(bus);
 
         // Fetch must come from PRG ROM. A CPU write to $8000 is an NROM no-op, so
         // this would stay LDA #$10 only if the cart mapping is real.
