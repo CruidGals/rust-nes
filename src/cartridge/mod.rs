@@ -332,6 +332,12 @@ mod tests {
         rom
     }
 
+    /// Marks an iNES image as NES 2.0. Byte 7 bits 3–2 must be `10`.
+    fn mark_nes20(mut rom: Vec<u8>) -> Vec<u8> {
+        rom[7] |= 0x08;
+        rom
+    }
+
     /*
      * Unit tests for from_ines
      */
@@ -448,5 +454,55 @@ mod tests {
         rom[6] |= 0x10;
         let err = Cartridge::from_ines(&rom).unwrap_err();
         assert_eq!(err, "Invalid mapper number: 1");
+    }
+
+    #[test]
+    fn test_from_ines_20_reads_prg_chr_and_trainer() {
+        let mut rom = mark_nes20(ines_image(INES_MAGIC, 1, 1, 0, Some(0x11), 0x22, 0x33));
+        // Byte 10 low nibble 7 is 8 KB of PRG RAM. Byte 11 high nibble is CHR NVRAM and is not part of the file length.
+        rom[10] = 0x07;
+        rom[11] = 0x70;
+        let cart = Cartridge::from_ines(&rom).unwrap();
+
+        assert_eq!(cart.cpu_read(0x7000).unwrap(), 0x11);
+        assert_eq!(cart.cpu_read(0x8000).unwrap(), 0x22);
+        assert_eq!(cart.ppu_read(0x0000).unwrap(), 0x33);
+    }
+
+    #[test]
+    fn test_from_ines_20_prg_ram_uses_shift_count() {
+        let mut rom = mark_nes20(ines_image(INES_MAGIC, 1, 1, 0, None, 0x22, 0x33));
+        // Low nibble 7 is 8 KB. High nibble 1 is 128 bytes of PRG NVRAM.
+        rom[10] = 0x17;
+        let mut cart = Cartridge::from_ines(&rom).unwrap();
+
+        cart.cpu_write(0x6000, 0x42).unwrap();
+        cart.cpu_write(0x7000, 0x99).unwrap();
+        assert_eq!(cart.cpu_read(0x6000).unwrap(), 0x42);
+        assert_eq!(cart.cpu_read(0x7000).unwrap(), 0x99);
+
+        rom[10] = 0x08;
+        let err = Cartridge::from_ines(&rom).unwrap_err();
+        assert!(err.contains("16384"), "{err}");
+    }
+
+    #[test]
+    fn test_from_ines_20_exponent_rom_sizes() {
+        // 16 KB is 2^14, and 8 KB is 2^13. Both multipliers are 1, so the low two bits stay 0.
+        let mut rom = mark_nes20(ines_image(INES_MAGIC, 1, 1, 0, None, 0x22, 0x33));
+        rom[4] = 0x38;
+        rom[5] = 0x34;
+        rom[9] = 0xFF;
+        let cart = Cartridge::from_ines(&rom).unwrap();
+
+        assert_eq!(cart.cpu_read(0x8000).unwrap(), 0x22);
+        assert_eq!(cart.ppu_read(0x0000).unwrap(), 0x33);
+    }
+
+    #[test]
+    fn test_from_ines_20_rom_size_msb_extends_prg() {
+        let mut rom = mark_nes20(ines_image(INES_MAGIC, 1, 1, 0, None, 0x22, 0x33));
+        rom[9] = 0x01;
+        assert!(Cartridge::from_ines(&rom).is_err());
     }
 }
