@@ -505,4 +505,48 @@ mod tests {
         rom[9] = 0x01;
         assert!(Cartridge::from_ines(&rom).is_err());
     }
+
+    #[test]
+    fn test_from_ines_max_prg_and_chr_rom_size() {
+        // Byte 4 maxes out at 255 x 16 KB. One CHR bank keeps that size inside NROM,
+        // so the reported failure is the PRG size the header decoded.
+        {
+            let rom = ines_image(INES_MAGIC, u8::MAX, 1, 0, None, 0x22, 0x33);
+            let err = Cartridge::from_ines(&rom).unwrap_err();
+            let expected = usize::from(u8::MAX) * PRG_BANK_SIZE;
+            assert!(err.contains("PRG_ROM") && err.contains(&expected.to_string()), "{err}");
+        }
+
+        // Byte 5 maxes out at 255 x 8 KB. One PRG bank stays inside the NROM limit.
+        {
+            let rom = ines_image(INES_MAGIC, 1, u8::MAX, 0, None, 0x22, 0x33);
+            let err = Cartridge::from_ines(&rom).unwrap_err();
+            let expected = usize::from(u8::MAX) * CHR_BANK_SIZE;
+            assert!(err.contains("CHR_ROM") && err.contains(&expected.to_string()), "{err}");
+        }
+    }
+
+    #[test]
+    fn test_from_ines_20_decent_rom_size() {
+        // Exponent form, multiplier 1. 64 KB PRG is 2^16 and 8 KB CHR is 2^13.
+        // Far below the NES 2.0 maximum, and large enough that NROM rejects the PRG size.
+        {
+            let mut rom = mark_nes20(ines_image(INES_MAGIC, 4, 1, 0, None, 0x22, 0x33));
+            rom[4] = 0x40;
+            rom[5] = 0x34;
+            rom[9] = 0xFF;
+            let err = Cartridge::from_ines(&rom).unwrap_err();
+            assert!(err.contains("PRG_ROM") && err.contains("65536"), "{err}");
+        }
+
+        // 16 KB PRG is 2^14, which NROM allows. 32 KB CHR is 2^15.
+        {
+            let mut rom = mark_nes20(ines_image(INES_MAGIC, 1, 4, 0, None, 0x22, 0x33));
+            rom[4] = 0x38;
+            rom[5] = 0x3C;
+            rom[9] = 0xFF;
+            let err = Cartridge::from_ines(&rom).unwrap_err();
+            assert!(err.contains("CHR_ROM") && err.contains("32768"), "{err}");
+        }
+    }
 }
