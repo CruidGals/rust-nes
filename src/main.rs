@@ -1,9 +1,10 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, error::Error, rc::Rc};
 
 use crate::{cartridge::Cartridge, cpu::{cpu::CPU, cpubus::CPUBus}};
 
 mod cpu;
 mod cartridge;
+mod util;
 
 pub struct NES {
     cartridge: Rc<RefCell<Cartridge>>,
@@ -11,8 +12,20 @@ pub struct NES {
     // Add PPU, PPUBus, APU
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     // TODO: Load the screen (not started yet)
+
+    // Try using test rom
+    let rom = std::fs::read("roms/nestest.nes")?;
+    let mut nes = power_up(&rom)?;
+    
+    // Setup the nestest
+    nes.cpu.pc = 0xC000;
+    while nes.cpu.instructions_ran < 8991 {
+        nes.cpu.tick()?;
+    }
+
+    Ok(())
 }
 
 /// Power up function for the NES. Creates entirely new dependencies.
@@ -21,7 +34,7 @@ fn main() {
 fn power_up(rom: &[u8]) -> Result<NES, String> {
     let cartridge = Rc::new(RefCell::new(Cartridge::new(rom)?));
     let cpu_bus = CPUBus::new(Rc::clone(&cartridge));
-    let cpu = CPU::new(cpu_bus);
+    let cpu = CPU::new(cpu_bus, true)?;
 
     Ok(NES { cartridge, cpu })
 }
