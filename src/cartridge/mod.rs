@@ -12,15 +12,15 @@ use crate::cartridge::{NametableArrangement::{Horizontal, Vertical}};
 
 // TODO: Keep this here, move it somewhere else later
 #[derive(Debug)]
-enum NametableArrangement {
+pub enum NametableArrangement {
     Vertical, Horizontal
 }
 
 #[derive(Debug)]
 pub struct Cartridge {
-    nametable_arrangement: NametableArrangement,
-    has_persistent_ram: bool,
-    ignore_mirroring: bool,
+    pub nametable_arrangement: NametableArrangement,
+    pub has_persistent_ram: bool,
+    pub ignore_mirroring: bool,
     mapper: Box<dyn Mapper>,
     trainer_data: Option<Vec<u8>>, // Emergency RAM if trainer speciied and PRG_RAM not available
 }
