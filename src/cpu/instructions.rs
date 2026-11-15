@@ -2,8 +2,8 @@
  * Instructions for the MOS 6502 CPU
  */
 
-use crate::cpu::{cpu::StatusRegister};
-use super::cpu::CPU;
+use super::StatusRegister;
+use super::CPU;
 
 // ==================================================================
 // INSTRUCTIONS FOR THE MOS 6502 CPU
@@ -613,7 +613,7 @@ pub fn nop_op(_cpu: &mut CPU) -> () {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cpu::{cpu::{test_cartridge, test_cartridge_with_prg, CPU}, cpubus::CPUBus};
+    use crate::cpu::{test_cartridge, test_cartridge_with_prg, CPU, cpubus::CPUBus};
 
     #[test]
     fn test_adc_op_overflow() {

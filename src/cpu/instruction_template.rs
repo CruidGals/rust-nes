@@ -2,7 +2,7 @@
  * Related generic instruction implementations for the CPU
  */
 
-use super::cpu::CPU;
+use super::CPU;
 
 // ==================================================================
 // BASE INSTRUCTIONS FOR ADDRESSING MODES
@@ -1195,7 +1195,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cpu::{cpu::{test_cartridge, CPU}, cpubus::CPUBus};
+    use crate::cpu::{test_cartridge, CPU, cpubus::CPUBus};
     use std::cell::Cell;
 
     #[test]
