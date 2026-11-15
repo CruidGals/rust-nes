@@ -2,7 +2,7 @@
  * Instructions for the MOS 6502 CPU
  */
 
-use crate::cpu::{self, cpu::StatusRegister, instruction_template};
+use crate::cpu::{cpu::StatusRegister};
 use super::cpu::CPU;
 
 // ==================================================================
@@ -298,7 +298,7 @@ pub fn pha_op(cpu: &mut CPU) -> Result<(), String> {
             cpu.target_addr = 0x0100 | u16::from(cpu.sp);
             cpu.write(cpu.target_addr, cpu.a)?;
             cpu.decrement_sp();
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -317,7 +317,7 @@ pub fn php_op(cpu: &mut CPU) -> Result<(), String> {
             let status = cpu.p.bits() | 0b00110000; // Set break and unused flag
             cpu.write(cpu.target_addr, status)?;
             cpu.decrement_sp();
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -340,7 +340,7 @@ pub fn pla_op(cpu: &mut CPU) -> Result<(), String> {
             cpu.target_addr = 0x0100 | u16::from(cpu.sp);
             cpu.a = cpu.read(cpu.target_addr)?;
             cpu.set_zn_flags(cpu.a);
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -368,7 +368,7 @@ pub fn plp_op(cpu: &mut CPU) -> Result<(), String> {
             status |= 0b00100000;
             
             cpu.p = StatusRegister::from_bits_retain(status);
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -384,15 +384,14 @@ pub fn plp_op(cpu: &mut CPU) -> Result<(), String> {
 pub fn jmp_op_absolute(cpu: &mut CPU) -> Result<(), String> {
     match cpu.cycle_step {
         2 => {
-            cpu.low_buffer = cpu.read(cpu.pc)?;
-            cpu.increment_pc();
+            cpu.low_buffer = cpu.fetch()?;
             cpu.step_cycle();
             Ok(())
         }
         3 => {
-            cpu.high_buffer = cpu.read(cpu.pc)?;
+            cpu.high_buffer = cpu.fetch()?;
             cpu.pc = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -402,14 +401,12 @@ pub fn jmp_op_absolute(cpu: &mut CPU) -> Result<(), String> {
 pub fn jmp_op_indirect(cpu: &mut CPU) -> Result<(), String> {
     match cpu.cycle_step {
         2 => {
-            cpu.low_buffer = cpu.read(cpu.pc)?;
-            cpu.increment_pc();
+            cpu.low_buffer = cpu.fetch()?;
             cpu.step_cycle();
             Ok(())
         }
         3 => {
-            cpu.high_buffer = cpu.read(cpu.pc)?;
-            cpu.increment_pc();
+            cpu.high_buffer = cpu.fetch()?;
             cpu.step_cycle();
             Ok(())
         }
@@ -426,7 +423,7 @@ pub fn jmp_op_indirect(cpu: &mut CPU) -> Result<(), String> {
 
             // Copy into PC
             cpu.pc = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -436,8 +433,7 @@ pub fn jmp_op_indirect(cpu: &mut CPU) -> Result<(), String> {
 pub fn jsr_op(cpu: &mut CPU) -> Result<(), String> {
     match cpu.cycle_step {
         2 => {
-            cpu.low_buffer = cpu.read(cpu.pc)?;
-            cpu.pc = cpu.pc.wrapping_add(1);
+            cpu.low_buffer = cpu.fetch()?;
             cpu.step_cycle();
             Ok(())
         }
@@ -465,9 +461,9 @@ pub fn jsr_op(cpu: &mut CPU) -> Result<(), String> {
             Ok(())
         }
         6 => {
-            cpu.high_buffer = cpu.read(cpu.pc)?;
+            cpu.high_buffer = cpu.fetch()?;
             cpu.pc = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -504,7 +500,7 @@ pub fn rts_op(cpu: &mut CPU) -> Result<(), String> {
         }
         6 => {
             cpu.pc = cpu.pc.wrapping_add(1);
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -549,7 +545,7 @@ pub fn rti_op(cpu: &mut CPU) -> Result<(), String> {
             cpu.target_addr = 0x0100 | u16::from(cpu.sp);
             let high_byte = cpu.read(cpu.target_addr)?;
             cpu.pc = (cpu.pc & 0xFF) | (u16::from(high_byte) << 8);
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -559,9 +555,8 @@ pub fn rti_op(cpu: &mut CPU) -> Result<(), String> {
 pub fn brk_op(cpu: &mut CPU) -> Result<(), String> {
     match cpu.cycle_step {
         2 => {
-            // Dummy read
-            cpu.read(cpu.pc)?;
-            cpu.pc = cpu.pc.wrapping_add(1);
+            // Padding byte. PC moves past it, so it is part of the instruction.
+            cpu.fetch()?;
             cpu.step_cycle();
             Ok(())
         }
@@ -599,7 +594,7 @@ pub fn brk_op(cpu: &mut CPU) -> Result<(), String> {
         7 => {
             cpu.high_buffer = cpu.read(0xFFFF)?;
             cpu.pc = (cpu.pc & 0xFF) | u16::from(cpu.high_buffer) << 8;
-            cpu.finish_instruction();
+            cpu.finish_instruction()?;
             Ok(())
         }
         _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -623,7 +618,7 @@ mod tests {
     #[test]
     fn test_adc_op_overflow() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0x50;
         adc_op(&mut cpu, 0x50);
@@ -641,7 +636,7 @@ mod tests {
     #[test]
     fn test_adc_op_unsigned_carry() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0xFF;
         adc_op(&mut cpu, 0x01);
@@ -659,7 +654,7 @@ mod tests {
     #[test]
     fn test_adc_op_existing_carry() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0xFD;
         cpu.p.set(StatusRegister::CARRY, true);
@@ -678,7 +673,7 @@ mod tests {
     #[test]
     fn test_sbc_op_borrow() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // C = 1 means no incoming borrow
         cpu.a = 0x50;
@@ -698,7 +693,7 @@ mod tests {
     #[test]
     fn test_bit_op_nv_from_operand() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // A & value == 0, but bits 7 and 6 of the operand are set
         cpu.a = 0x00;
@@ -716,7 +711,7 @@ mod tests {
     #[test]
     fn test_bit_op_zero_from_and() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Same operand bits 7/6, but A & value != 0
         cpu.a = 0xC0;
@@ -734,7 +729,7 @@ mod tests {
     #[test]
     fn test_cmp_op_register_greater() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0x50;
         cmp_op(&mut cpu, 0x20);
@@ -751,7 +746,7 @@ mod tests {
     #[test]
     fn test_cmp_op_register_equal() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0x50;
         cmp_op(&mut cpu, 0x50);
@@ -768,7 +763,7 @@ mod tests {
     #[test]
     fn test_cmp_op_register_less() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0x20;
         cmp_op(&mut cpu, 0x50);
@@ -785,7 +780,7 @@ mod tests {
     #[test]
     fn test_rol_op_carry_through() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Bit 7 shifts into C; previous C shifts into bit 0
         cpu.p.set(StatusRegister::CARRY, true);
@@ -803,7 +798,7 @@ mod tests {
     #[test]
     fn test_ror_op_carry_through() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Bit 0 shifts into C; previous C shifts into bit 7
         cpu.p.set(StatusRegister::CARRY, true);
@@ -821,7 +816,7 @@ mod tests {
     #[test]
     fn test_jmp_op_indirect_page_wrap() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // JMP ($02FF): low byte at $02FF, high byte wraps to $0200
         cpu.pc = 0x0000;
@@ -845,7 +840,7 @@ mod tests {
     #[test]
     fn test_jsr_op_pushes_third_byte() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // JSR $1234 at $01FF: operands at $0200/$0201; third byte is $0201
         cpu.pc = 0x0200;
@@ -871,7 +866,7 @@ mod tests {
     #[test]
     fn test_rts_op_pulls_and_increments_pc() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Stack holds the JSR-style return address $0201
         cpu.pc = 0x0000;
@@ -895,7 +890,7 @@ mod tests {
     #[test]
     fn test_php_op_sets_break_and_unused() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.pc = 0x0000;
         cpu.sp = 0xFD;
@@ -917,7 +912,7 @@ mod tests {
     #[test]
     fn test_plp_op_clears_break_sets_unused() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Stack byte has B set and unused clear
         cpu.pc = 0x0000;
@@ -947,7 +942,7 @@ mod tests {
         prg_rom[0x3FFE] = 0x00;
         prg_rom[0x3FFF] = 0x03;
         let bus = CPUBus::new(test_cartridge_with_prg(&prg_rom));
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // BRK at $0200: after the opcode fetch, PC is $0201 and BRK pushes PC + 2
         cpu.pc = 0x0201;

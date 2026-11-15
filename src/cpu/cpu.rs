@@ -1,3 +1,5 @@
+use crate::util::logger::Logger;
+
 /***
  * Business logic for the 6502 CPU
  */
@@ -38,19 +40,30 @@ pub struct CPU {
     pub target_addr: u16, /* store addr for later use during write instructions */
     pub alu_buffer: u8, /* buffer used to perform ops with ALU */
 
+    /* Debug */
+    pub cycle_count: i32,
+    pub instructions_ran: i32,
+    pub logger: Option<Logger>,
+
     /* Wiring */
     pub bus: CPUBus,
 }
 
 impl CPU {
-    pub fn new(cpu_bus: CPUBus) -> Self {
-        Self {
+    pub fn new(cpu_bus: CPUBus, debug_mode: bool) -> Result<Self, String> {
+        let logger = if debug_mode {
+            Some(Logger::new()?)
+        } else {
+            None
+        };
+
+        Ok(Self {
             a: 0,
             x: 0,
             y: 0,
             pc: 0xFFFC,
             sp: 0xFD,
-            p: StatusRegister::empty(),
+            p: StatusRegister::INTERRUPT,
 
             curr_opcode: None,
             cycle_step: 1,
@@ -60,8 +73,12 @@ impl CPU {
             target_addr: 0,
             alu_buffer: 0,
 
+            cycle_count: 7,
+            instructions_ran: 0,
+            logger: logger,
+
             bus: cpu_bus
-        }
+        })
     }
 
     pub fn tick(&mut self) -> Result<(), String> {
@@ -71,6 +88,12 @@ impl CPU {
         if self.cycle_step == 1 {
             let opcode = self.read(self.pc)?;
             self.curr_opcode = self.choose_opcode(opcode);
+            // Debug
+            if let Some(logger) = &mut self.logger {
+                logger.reset_cpu_state(self.pc, self.a, self.x, self.y, self.p.bits() | 0x20, self.sp, self.cycle_count);
+                logger.add_opcode(opcode);
+            }
+
             self.increment_pc();
             self.step_cycle();
         } else {
@@ -361,6 +384,7 @@ impl CPU {
     /// 
     pub fn step_cycle(&mut self) -> () {
         self.cycle_step += 1;
+        self.cycle_count += 1;
     }
 
     ///
@@ -368,7 +392,7 @@ impl CPU {
     /// current opcode being ran and the cycle step counter. Resets
     /// all necessary buffers.
     /// 
-    pub fn finish_instruction(&mut self) -> () {
+    pub fn finish_instruction(&mut self) -> Result<(), String> {
         self.curr_opcode = None;
         self.cycle_step = 1;
         self.low_buffer = 0;
@@ -376,6 +400,14 @@ impl CPU {
         self.page_boundary_cross = false;
         self.target_addr = 0;
         self.alu_buffer = 0;
+        self.cycle_count += 1;
+
+        /* Debug */
+        self.instructions_ran += 1;
+        if let Some(logger) = &mut self.logger {
+            logger.log()?;
+        }
+        Ok(())
     }
 
     ///
@@ -420,6 +452,16 @@ impl CPU {
     pub fn write(&mut self, address: u16, value: u8) -> Result<(), String> {
         self.bus.write(address, value)
             .map_err(|err| format!("Error writing to CPU VRAM at {address:#06X}: {err}"))
+    }
+
+    /// Fetches the byte at current program counter, and increments program counter
+    pub fn fetch(&mut self) -> Result<u8, String> {
+        let byte = self.read(self.pc)?;
+        if let Some(logger) = &mut self.logger {
+            logger.add_opcode(byte);
+        }
+        self.increment_pc();
+        Ok(byte)
     }
 }
 
@@ -534,7 +576,7 @@ mod tests {
 
         let cart = test_cartridge_with_prg(&prg_rom);
         let bus = CPUBus::new(std::rc::Rc::clone(&cart));
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Fetch must come from PRG ROM. A CPU write to $8000 is an NROM no-op, so
         // this would stay LDA #$10 only if the cart mapping is real.

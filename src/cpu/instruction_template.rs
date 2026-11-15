@@ -2,8 +2,6 @@
  * Related generic instruction implementations for the CPU
  */
 
-use std::fmt::format;
-
 use super::cpu::CPU;
 
 // ==================================================================
@@ -29,22 +27,20 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.read(cpu.pc)?;
+                cpu.high_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             4 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -62,15 +58,13 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.read(cpu.pc)?;
+                cpu.high_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -89,7 +83,7 @@ where
             }
             6 => {
                 cpu.write(cpu.target_addr, cpu.alu_buffer)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -108,22 +102,20 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.read(cpu.pc)?;
+                cpu.high_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             4 => {
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
                 cpu.write(cpu.target_addr, register)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -144,15 +136,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 let value = cpu.read(u16::from(cpu.low_buffer))?;
                 operation(cpu, value);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -170,9 +161,8 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -191,7 +181,7 @@ where
             }
             5 => {
                 cpu.write(cpu.target_addr, cpu.alu_buffer)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -209,15 +199,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 let register = operation(cpu);
                 cpu.write(u16::from(cpu.low_buffer), register)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -237,9 +226,8 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -253,7 +241,7 @@ where
             4 => {
                 let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -271,9 +259,8 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -299,7 +286,7 @@ where
             }
             6 => {
                 cpu.write(cpu.target_addr, cpu.alu_buffer)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -317,9 +304,8 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -333,7 +319,7 @@ where
             4 => {
                 let register = operation(cpu);
                 cpu.write(cpu.target_addr, register)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -354,9 +340,8 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -370,7 +355,7 @@ where
             4 => {
                 let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -388,9 +373,8 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -416,7 +400,7 @@ where
             }
             6 => {
                 cpu.write(cpu.target_addr, cpu.alu_buffer)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -434,9 +418,8 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -450,7 +433,7 @@ where
             4 => {
                 let register = operation(cpu);
                 cpu.write(cpu.target_addr, register)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -471,17 +454,15 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Get high buffer while incrementing lower by index
-                cpu.high_buffer = cpu.read(cpu.pc)?;
+                cpu.high_buffer = cpu.fetch()?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.x);
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -494,7 +475,7 @@ where
                     cpu.step_cycle();
                 } else {
                     operation(cpu, value);
-                    cpu.finish_instruction();
+                    cpu.finish_instruction()?;
                 }
 
                 Ok(())
@@ -503,7 +484,7 @@ where
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -521,16 +502,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.read(cpu.pc)?;
+                cpu.high_buffer = cpu.fetch()?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.x);
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -562,7 +541,7 @@ where
             }
             7 => {
                 cpu.write(cpu.target_addr, cpu.alu_buffer)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -581,16 +560,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.read(cpu.pc)?;
+                cpu.high_buffer = cpu.fetch()?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.x);
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -610,7 +587,7 @@ where
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
                 cpu.write(cpu.target_addr, register)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -631,17 +608,15 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
                 // Get high buffer while incrementing lower by index
-                cpu.high_buffer = cpu.read(cpu.pc)?;
+                cpu.high_buffer = cpu.fetch()?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -654,7 +629,7 @@ where
                     cpu.step_cycle();
                 } else {
                     operation(cpu, value);
-                    cpu.finish_instruction();
+                    cpu.finish_instruction()?;
                 }
 
                 Ok(())
@@ -663,7 +638,7 @@ where
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -681,16 +656,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.read(cpu.pc)?;
+                cpu.high_buffer = cpu.fetch()?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -722,7 +695,7 @@ where
             }
             7 => {
                 cpu.write(cpu.target_addr, cpu.alu_buffer)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -741,16 +714,14 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
+                cpu.low_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
-                cpu.high_buffer = cpu.read(cpu.pc)?;
+                cpu.high_buffer = cpu.fetch()?;
                 (cpu.low_buffer, cpu.page_boundary_cross) = cpu.low_buffer.overflowing_add(cpu.y);
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             4 => {
@@ -770,7 +741,7 @@ where
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
                 cpu.write(cpu.target_addr, register)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -792,9 +763,8 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.read(cpu.pc)?;
+                cpu.alu_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -820,7 +790,7 @@ where
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -839,9 +809,8 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.read(cpu.pc)?;
+                cpu.alu_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -879,7 +848,7 @@ where
             }
             8 => {
                 cpu.write(cpu.target_addr, cpu.alu_buffer)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -898,9 +867,8 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.read(cpu.pc)?;
+                cpu.alu_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -926,7 +894,7 @@ where
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
                 cpu.write(cpu.target_addr, register)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -948,9 +916,8 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.read(cpu.pc)?;
+                cpu.alu_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -975,7 +942,7 @@ where
                     cpu.step_cycle();
                 } else {
                     operation(cpu, value);
-                    cpu.finish_instruction();
+                    cpu.finish_instruction()?;
                 }
 
                 Ok(())
@@ -984,7 +951,7 @@ where
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let value = cpu.read(cpu.target_addr)?;
                 operation(cpu, value);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -1003,9 +970,8 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.read(cpu.pc)?;
+                cpu.alu_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -1049,7 +1015,7 @@ where
             }
             8 => {
                 cpu.write(cpu.target_addr, cpu.alu_buffer)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -1068,9 +1034,8 @@ where
         match cpu.cycle_step {
             2 => {
                 // Read pointer into buffer
-                cpu.alu_buffer = cpu.read(cpu.pc)?;
+                cpu.alu_buffer = cpu.fetch()?;
                 cpu.step_cycle();
-                cpu.increment_pc();
                 Ok(())
             }
             3 => {
@@ -1102,7 +1067,7 @@ where
                 cpu.target_addr = (u16::from(cpu.high_buffer) << 8) | u16::from(cpu.low_buffer);
                 let register = operation(cpu);
                 cpu.write(cpu.target_addr, register)?;
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -1123,10 +1088,9 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                let value = cpu.read(cpu.pc)?;
+                let value = cpu.fetch()?;
                 operation(cpu, value);
-                cpu.increment_pc();
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -1149,7 +1113,7 @@ where
             2 => {
                 cpu.read(cpu.pc)?;
                 cpu.a = operation(cpu, cpu.a);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -1166,7 +1130,7 @@ where
             2 => {
                 cpu.read(cpu.pc)?;
                 operation(cpu);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -1187,14 +1151,13 @@ where
     move |cpu| {
         match cpu.cycle_step {
             2 => {
-                cpu.low_buffer = cpu.read(cpu.pc)?;
-                cpu.increment_pc();
+                cpu.low_buffer = cpu.fetch()?;
                 
                 // Check if branched
                 if operation(cpu) {
                     cpu.step_cycle();
                 } else {
-                    cpu.finish_instruction();
+                    cpu.finish_instruction()?;
                 }
 
                 Ok(())
@@ -1212,7 +1175,7 @@ where
                     cpu.high_buffer = (target_pc >> 8) as u8;
                     cpu.step_cycle();
                 } else {
-                    cpu.finish_instruction();
+                    cpu.finish_instruction()?;
                 }
                 Ok(())
             }
@@ -1221,7 +1184,7 @@ where
                 cpu.read(cpu.pc)?;
 
                 cpu.pc = (cpu.pc & 0x00FF) | (u16::from(cpu.high_buffer) << 8);
-                cpu.finish_instruction();
+                cpu.finish_instruction()?;
                 Ok(())
             }
             _ => Err(format!("cpu.cycle_step outside of its expected range: {}", cpu.cycle_step))
@@ -1238,7 +1201,7 @@ mod tests {
     #[test]
     fn test_absolute_indexed_x_addr_r_no_page_cross() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Base $0100 + X = $05 → $0105, no page cross
         cpu.pc = 0x0000;
@@ -1271,7 +1234,7 @@ mod tests {
     #[test]
     fn test_absolute_indexed_x_addr_r_page_cross() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Base $01FE + X = $05 → dummy $0103, real $0203
         cpu.pc = 0x0000;
@@ -1312,7 +1275,7 @@ mod tests {
     #[test]
     fn test_absolute_indexed_x_addr_w_no_page_cross() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Base $0100 + X = $05 → still 5 cycles, dummy read on cycle 4
         cpu.pc = 0x0000;
@@ -1347,7 +1310,7 @@ mod tests {
     #[test]
     fn test_absolute_indexed_x_addr_w_page_cross() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Base $01FE + X = $05 → dummy $0103, write $0203
         cpu.pc = 0x0000;
@@ -1385,7 +1348,7 @@ mod tests {
     #[test]
     fn test_zero_page_addr_rmw_dummy_write() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.pc = 0x0000;
         cpu.cycle_step = 2;
@@ -1419,7 +1382,7 @@ mod tests {
     #[test]
     fn test_relative_addr_not_taken() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.pc = 0x0100;
         cpu.cycle_step = 2;
@@ -1436,7 +1399,7 @@ mod tests {
     #[test]
     fn test_relative_addr_taken_same_page() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.pc = 0x0100;
         cpu.cycle_step = 2;
@@ -1458,7 +1421,7 @@ mod tests {
     #[test]
     fn test_relative_addr_taken_page_cross() {
         let bus = CPUBus::new(test_cartridge());
-        let mut cpu = CPU::new(bus);
+        let mut cpu = CPU::new(bus, false).unwrap();
 
         // Offset at $01FE; after the increment, PC is $01FF + $05 → $0204
         cpu.pc = 0x01FE;
