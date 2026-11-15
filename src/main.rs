@@ -1,6 +1,6 @@
 use std::{cell::RefCell, error::Error, rc::Rc};
 
-use crate::{cartridge::Cartridge, cpu::{CPU, cpubus::CPUBus}};
+use crate::{cartridge::Cartridge, cpu::{CPU, cpubus::CPUBus}, ppu::{PPU, ppubus::PPUBus}};
 
 mod cpu;
 mod ppu;
@@ -10,7 +10,7 @@ mod util;
 pub struct NES {
     cartridge: Rc<RefCell<Cartridge>>,
     cpu: CPU,
-    // Add PPU, PPUBus, APU
+    ppu: Rc<RefCell<PPU>>,
 }
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -34,10 +34,12 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 /// required to use an NES
 fn power_up(rom: &[u8]) -> Result<NES, String> {
     let cartridge = Rc::new(RefCell::new(Cartridge::new(rom)?));
-    let cpu_bus = CPUBus::new(Rc::clone(&cartridge));
+    let ppu_bus = PPUBus::new(Rc::clone(&cartridge));
+    let ppu = Rc::new(RefCell::new(PPU::new(ppu_bus)?));
+    let cpu_bus = CPUBus::new(Rc::clone(&cartridge), Rc::clone(&ppu));
     let cpu = CPU::new(cpu_bus, true)?;
 
-    Ok(NES { cartridge, cpu })
+    Ok(NES { cartridge, cpu, ppu })
 }
 
 fn reset() {

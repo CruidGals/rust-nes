@@ -613,11 +613,12 @@ pub fn nop_op(_cpu: &mut CPU) -> () {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cpu::{test_cartridge, test_cartridge_with_prg, CPU, cpubus::CPUBus};
+    use crate::cpu::{test_cartridge, test_cartridge_with_prg, test_ppu, CPU, cpubus::CPUBus};
 
     #[test]
     fn test_adc_op_overflow() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0x50;
@@ -635,7 +636,8 @@ mod tests {
 
     #[test]
     fn test_adc_op_unsigned_carry() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0xFF;
@@ -653,7 +655,8 @@ mod tests {
 
     #[test]
     fn test_adc_op_existing_carry() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0xFD;
@@ -672,7 +675,8 @@ mod tests {
 
     #[test]
     fn test_sbc_op_borrow() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // C = 1 means no incoming borrow
@@ -692,7 +696,8 @@ mod tests {
 
     #[test]
     fn test_bit_op_nv_from_operand() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // A & value == 0, but bits 7 and 6 of the operand are set
@@ -710,7 +715,8 @@ mod tests {
 
     #[test]
     fn test_bit_op_zero_from_and() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // Same operand bits 7/6, but A & value != 0
@@ -728,7 +734,8 @@ mod tests {
 
     #[test]
     fn test_cmp_op_register_greater() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0x50;
@@ -745,7 +752,8 @@ mod tests {
 
     #[test]
     fn test_cmp_op_register_equal() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0x50;
@@ -762,7 +770,8 @@ mod tests {
 
     #[test]
     fn test_cmp_op_register_less() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.a = 0x20;
@@ -779,7 +788,8 @@ mod tests {
 
     #[test]
     fn test_rol_op_carry_through() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // Bit 7 shifts into C; previous C shifts into bit 0
@@ -797,7 +807,8 @@ mod tests {
 
     #[test]
     fn test_ror_op_carry_through() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // Bit 0 shifts into C; previous C shifts into bit 7
@@ -815,7 +826,8 @@ mod tests {
 
     #[test]
     fn test_jmp_op_indirect_page_wrap() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // JMP ($02FF): low byte at $02FF, high byte wraps to $0200
@@ -839,7 +851,8 @@ mod tests {
 
     #[test]
     fn test_jsr_op_pushes_third_byte() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // JSR $1234 at $01FF: operands at $0200/$0201; third byte is $0201
@@ -865,7 +878,8 @@ mod tests {
 
     #[test]
     fn test_rts_op_pulls_and_increments_pc() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // Stack holds the JSR-style return address $0201
@@ -889,7 +903,8 @@ mod tests {
 
     #[test]
     fn test_php_op_sets_break_and_unused() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         cpu.pc = 0x0000;
@@ -911,7 +926,8 @@ mod tests {
 
     #[test]
     fn test_plp_op_clears_break_sets_unused() {
-        let bus = CPUBus::new(test_cartridge());
+        let cartridge = test_cartridge();
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // Stack byte has B set and unused clear
@@ -941,7 +957,8 @@ mod tests {
         let mut prg_rom = vec![0u8; 16 * 1024];
         prg_rom[0x3FFE] = 0x00;
         prg_rom[0x3FFF] = 0x03;
-        let bus = CPUBus::new(test_cartridge_with_prg(&prg_rom));
+        let cartridge = test_cartridge_with_prg(&prg_rom);
+        let bus = CPUBus::new(std::rc::Rc::clone(&cartridge), test_ppu(&cartridge));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // BRK at $0200: after the opcode fetch, PC is $0201 and BRK pushes PC + 2

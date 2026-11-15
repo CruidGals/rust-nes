@@ -2,12 +2,15 @@ pub mod cpubus;
 pub mod instruction_template;
 pub mod instructions;
 
+#[cfg(test)]
+use crate::{cartridge::Cartridge, ppu::{PPU, ppubus::PPUBus}};
 /***
  * Business logic for the 6502 CPU
  */
 use crate::util::logger::Logger;
 use cpubus::CPUBus;
 use bitflags::bitflags;
+use std::{cell::RefCell, error::Error, rc::Rc};
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -467,14 +470,14 @@ impl CPU {
 }
 
 #[cfg(test)]
-pub(crate) fn test_cartridge() -> std::rc::Rc<std::cell::RefCell<crate::cartridge::Cartridge>> {
+pub(crate) fn test_cartridge() -> Rc<RefCell<Cartridge>> {
     test_cartridge_with_prg(&[])
 }
 
 #[cfg(test)]
 pub(crate) fn test_cartridge_with_prg(
     prg_rom: &[u8],
-) -> std::rc::Rc<std::cell::RefCell<crate::cartridge::Cartridge>> {
+) -> Rc<RefCell<Cartridge>> {
     const PRG_BANK: usize = 16 * 1024;
     const CHR_BANK: usize = 8 * 1024;
 
@@ -487,9 +490,17 @@ pub(crate) fn test_cartridge_with_prg(
     rom[5] = 1;
     rom[16..16 + prg_rom.len()].copy_from_slice(prg_rom);
 
-    std::rc::Rc::new(std::cell::RefCell::new(
-        crate::cartridge::Cartridge::new(&rom).unwrap(),
+    Rc::new(RefCell::new(
+        Cartridge::new(&rom).unwrap(),
     ))
+}
+
+#[cfg(test)]
+pub(crate) fn test_ppu(
+    cartridge: &Rc<RefCell<Cartridge>>,
+) -> Rc<RefCell<PPU>> {
+    let bus = PPUBus::new(Rc::clone(cartridge));
+    Rc::new(RefCell::new(PPU::new(bus).unwrap()))
 }
 
 #[cfg(test)]
@@ -576,7 +587,7 @@ mod tests {
         prg_rom[0x0104] = 0x60;
 
         let cart = test_cartridge_with_prg(&prg_rom);
-        let bus = CPUBus::new(std::rc::Rc::clone(&cart));
+        let bus = CPUBus::new(Rc::clone(&cart), test_ppu(&cart));
         let mut cpu = CPU::new(bus, false).unwrap();
 
         // Fetch must come from PRG ROM. A CPU write to $8000 is an NROM no-op, so

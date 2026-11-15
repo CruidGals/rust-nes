@@ -4,20 +4,24 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::ppu::PPU;
+
 use super::super::cartridge::Cartridge;
 
 #[derive(Debug)]
 pub struct CPUBus {
     // For now, just include reference to CPU VRAM
     vram: [u8; 2048], // 2KB of internal vram
-    cartridge: Rc<RefCell<Cartridge>>
+    cartridge: Rc<RefCell<Cartridge>>,
+    ppu: Rc<RefCell<PPU>>,
 }
 
 impl CPUBus {
-    pub fn new(cartridge: Rc<RefCell<Cartridge>>) -> Self {
+    pub fn new(cartridge: Rc<RefCell<Cartridge>>, ppu: Rc<RefCell<PPU>>) -> Self {
         Self { 
             vram: [0; 2048],
-            cartridge: cartridge
+            cartridge: cartridge,
+            ppu: ppu
         }
     }
 
@@ -29,10 +33,12 @@ impl CPUBus {
             // 2KB Internal VRAM is mirrored 4 times
             0x0000..=0x1FFF => Ok(self.vram[(address & 0x7FF) as usize]),
 
+            // Memory mapped reads
+            0x2000..=0x3FFF => Ok(self.ppu.borrow_mut().memory_mapped_read(0x2000 | (address & 0x07))?),
+
             // Catridge reads (hold interrupt vectors too)
             0x6000..=0xFFFF => self.cartridge.borrow().cpu_read(address),
             
-            // Implement memory mapped PPU stuff later..
             _ => Err(format!("Address {:#X} is outside of VRAM range", address)),
         }
     }
@@ -48,10 +54,15 @@ impl CPUBus {
                 Ok(())
             },
 
+            // Memory mapped writes
+            // TODO: Make sure implement ignore writes to certain registers until reach
+            // prerender scanline of next frame
+            0x2000..=0x3FFF => Ok(self.ppu.borrow_mut().memory_mapped_write(0x2000 | (address & 0x07), value)?),
+            0x4014 => Ok(self.ppu.borrow_mut().memory_mapped_write(address, value)?),
+
             // Writing to either ram or bank switching
             0x4000..=0xFFFF => self.cartridge.borrow_mut().cpu_write(address, value),
-            
-            // Implement memory mapped PPU stuff later..
+
             _ => Err(format!("Address {:#X} is outside of VRAM range", address)),
         }
     }
