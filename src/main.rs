@@ -1,8 +1,9 @@
 use std::{cell::RefCell, error::Error, rc::Rc};
 
-use crate::{cartridge::Cartridge, cpu::{cpu::CPU, cpubus::CPUBus}};
+use crate::{cartridge::Cartridge, cpu::{CPU, cpubus::CPUBus}};
 
 mod cpu;
+mod ppu;
 mod cartridge;
 mod util;
 
