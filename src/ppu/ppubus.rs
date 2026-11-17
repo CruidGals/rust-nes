@@ -9,6 +9,7 @@ use crate::cartridge::{Cartridge, NametableArrangement};
 pub struct PPUBus {
     vram: [u8; 2048], // 2KB to store the current nametable
     palette_ram: [u8; 256], // 256 bytes internal ram to store palette
+    oam: [u8; 256], // 256 bytes (64 sprites * 4 bytes)
     cartridge: Rc<RefCell<Cartridge>>
 }
 
@@ -17,6 +18,7 @@ impl PPUBus {
         Self { 
             vram: [0; 2048],
             palette_ram: [0; 256],
+            oam: [0; 256],
             cartridge: cartridge
         }
     }
@@ -86,7 +88,7 @@ impl PPUBus {
     /// Transforms the address to fit the bounds of VRAM
     /// based on the mirroring selected by the cartridge.
     /// Address is given in raw form (0x2000->0x3EFF)
-    pub fn nametable_mirroring(&self, address: u16) -> u16 {
+    fn nametable_mirroring(&self, address: u16) -> u16 {
         let offset= address & 0x0FFF;
 
         match self.cartridge.borrow().nametable_arrangement {
@@ -99,4 +101,10 @@ impl PPUBus {
             }
         }
     }
+
+    /// Read from OAM using any address in u8 range
+    pub fn read_oam(&self, address: u8) -> u8 { self.oam[address as usize] }
+
+    /// Write to OAM using any address in u8 range
+    pub fn write_oam(&mut self, address: u8, value: u8) -> () { self.oam[address as usize] = value; }
 }
