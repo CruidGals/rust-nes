@@ -58,7 +58,6 @@ impl CPUBus {
             // TODO: Make sure implement ignore writes to certain registers until reach
             // prerender scanline of next frame
             0x2000..=0x3FFF => Ok(self.ppu.borrow_mut().memory_mapped_write(0x2000 | (address & 0x07), value)?),
-            0x4014 => Ok(self.ppu.borrow_mut().memory_mapped_write(address, value)?),
 
             // Writing to either ram or bank switching
             0x4000..=0xFFFF => self.cartridge.borrow_mut().cpu_write(address, value),

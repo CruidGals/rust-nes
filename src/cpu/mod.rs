@@ -1,13 +1,14 @@
 pub mod cpubus;
 pub mod instruction_template;
 pub mod instructions;
+pub mod dma;
 
 #[cfg(test)]
 use crate::{cartridge::Cartridge, ppu::{PPU, ppubus::PPUBus}};
 /***
  * Business logic for the 6502 CPU
  */
-use crate::util::logger::Logger;
+use crate::{cpu::dma::DMA, util::logger::Logger};
 use cpubus::CPUBus;
 use bitflags::bitflags;
 use std::{cell::RefCell, error::Error, rc::Rc};
@@ -50,6 +51,7 @@ pub struct CPU {
     pub logger: Option<Logger>,
 
     /* Wiring */
+    pub dma: DMA,
     pub bus: CPUBus,
 }
 
@@ -81,6 +83,7 @@ impl CPU {
             instructions_ran: 0,
             logger: logger,
 
+            dma: DMA::new(),
             bus: cpu_bus
         })
     }
@@ -89,7 +92,39 @@ impl CPU {
         // TODO stub: Polling PPU's NMI wire
 
         // Choose the opcode if on first cycle step
-        if self.cycle_step == 1 {
+        // if self.cycle_step == 1 {
+        //     let opcode = self.read(self.pc)?;
+        //     self.curr_opcode = self.choose_opcode(opcode);
+        //     // Debug
+        //     if let Some(logger) = &mut self.logger {
+        //         logger.reset_cpu_state(self.pc, self.a, self.x, self.y, self.p.bits() | 0x20, self.sp, self.cycle_count);
+        //         logger.add_opcode(opcode);
+        //     }
+
+        //     self.increment_pc();
+        //     self.step_cycle();
+        // } else {
+        //     // Run through the instruction
+        //     if self.curr_opcode.is_none() {
+        //         panic!("Cycle step incremented even though opcode not selected");
+        //     }
+            
+        //     // Step thru the instruction
+        //     let op = self.curr_opcode.unwrap();
+        //     op(self)?;
+        // }
+
+        // CPU runs its tick function in this priority
+        //   1. Instruction (if currently in one)
+        //   2. DMA (if inside a process)
+        //   3. Choose an opcode to read an instruction
+        // (if there is any more i find i'll add it here)
+        if let Some(op) = self.curr_opcode {
+            op(self)?;
+        } else if self.dma.enabled {
+            self.dma.step(&mut self.bus)?;
+            self.cycle_count += 1;
+        } else {
             let opcode = self.read(self.pc)?;
             self.curr_opcode = self.choose_opcode(opcode);
             // Debug
@@ -100,15 +135,6 @@ impl CPU {
 
             self.increment_pc();
             self.step_cycle();
-        } else {
-            // Run through the instruction
-            if self.curr_opcode.is_none() {
-                panic!("Cycle step incremented even though opcode not selected");
-            }
-            
-            // Step thru the instruction
-            let op = self.curr_opcode.unwrap();
-            op(self)?;
         }
 
         // TODO: deal with interrup
@@ -454,6 +480,12 @@ impl CPU {
     }
 
     pub fn write(&mut self, address: u16, value: u8) -> Result<(), String> {
+        // Intercept OAMDMA writes
+        if address == 0x4014 {
+            self.dma.begin_oamdma(self.cycle_count, value);
+            return Ok(());
+        }
+
         self.bus.write(address, value)
             .map_err(|err| format!("Error writing to CPU VRAM at {address:#06X}: {err}"))
     }
@@ -508,8 +540,8 @@ mod tests {
     use super::*;
     use crate::cpu::cpubus::CPUBus;
 
-    fn run_until(cpu: &mut CPU, end_pc: u16) {
-        for _ in 0..500 {
+    fn run_until(cpu: &mut CPU, end_pc: u16, cycles_ran: i32) {
+        for _ in 0..cycles_ran {
             if cpu.pc == end_pc && cpu.cycle_step == 1 {
                 return;
             }
@@ -597,7 +629,7 @@ mod tests {
         assert_eq!(cpu.read(0x8000).unwrap(), 0xA9);
 
         cpu.pc = 0x8000;
-        run_until(&mut cpu, 0x8044);
+        run_until(&mut cpu, 0x8044, 500);
 
         // A=$77 from the PRG-RAM load; X/Y after INX/INY, LDX #$05, DEX, DEY
         assert_eq!(cpu.a, 0x77);
@@ -623,5 +655,50 @@ mod tests {
         assert!(!cpu.p.contains(StatusRegister::ZERO));
         assert!(!cpu.p.contains(StatusRegister::NEGATIVE));
         assert!(!cpu.p.contains(StatusRegister::OVERFLOW));
+    }
+
+    #[test]
+    fn test_oamdma() {
+        // Try copying a sequence of 256 bytes from 0x00 -> 0xFF
+        let bytes: Vec<u8> = (0x00..=0xFF).collect();
+
+        // Make a small program to trigger OAMDMA
+        let write_program = [
+            0xA9, 0x00,       // LDA $00   (prepare OAMADDR)
+            0x8D, 0x03, 0x20, // STA $2003 (store $00 into OAMADDR)
+            0xA9, 0x80,       // LDA $80   (prepare to store $8000 - $80FF to PPU OAM)
+            0x8D, 0x14, 0x40, // STA $4014 (trigger OAMDMA)
+            0xEA,             // NOP       (to have a specific end to pc)
+        ];
+
+        // Start these line of bytes at start of PRG_ROM
+        let mut prg_rom = vec![0u8; 16 * 1024];
+        prg_rom[..bytes.len()].copy_from_slice(&bytes);
+
+        // Store the program starting at $9000
+        prg_rom[0x1000..0x1000 + write_program.len()].copy_from_slice(&write_program);
+
+        let cart = test_cartridge_with_prg(&prg_rom);
+        let ppu = test_ppu(&cart);
+        let bus = CPUBus::new(Rc::clone(&cart), Rc::clone(&ppu));
+        let mut cpu = CPU::new(bus, false).unwrap();
+
+        // Ensure all bytes in PRG_ROM are set correctly
+        for val in 0u8..=0xFF {
+            assert_eq!(cpu.read(0x8000 | u16::from(val)).unwrap(), val);
+        }
+        for val in 0..write_program.len() {
+            assert_eq!(cpu.read(0x9000 | u16::from(val as u8)).unwrap(), write_program[val]);
+        }
+
+        // Run the program
+        cpu.pc = 0x9000;
+        run_until(&mut cpu, 0x900B, 1000);
+        assert_eq!(cpu.cycle_count, 534); // Program takes 527 cycles, CPU starts at 7
+
+        for val in 0u8..=0xFF {
+            ppu.borrow_mut().memory_mapped_write(0x2003, val).unwrap();
+            assert_eq!(ppu.borrow_mut().memory_mapped_read(0x2004).unwrap(), val);
+        }
     }
 }
