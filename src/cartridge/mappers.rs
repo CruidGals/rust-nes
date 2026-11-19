@@ -3,6 +3,8 @@
  * Mapper trait declaration
  */
 
+automod::dir!("src/cartridge/mappers");
+
 /// Helper function for mappers to ensure ROM sizes don't go past their limits
 pub fn check_size(name: &str, size: usize, max_size: usize) -> Result<(), String> {
     if size > max_size {
@@ -32,6 +34,23 @@ pub trait Mapper: std::fmt::Debug {
     /// Wrapper function to capture PPUP writes to the cartridge. Functionality is
     /// often used in bank switching; mapper controls the behavior of this.
     fn ppu_write(&mut self, addr: u16, value: u8) -> Result<(), String>;
+}
+
+pub fn choose_mapper(
+    mapper_number: u16, 
+    submapper_number: u8,
+    prg_rom: Vec<u8>,
+    chr_rom: Vec<u8>,
+    prg_ram: Vec<u8>,
+    chr_ram: Vec<u8>,
+    prg_nvram: Vec<u8>,
+    chr_nvram: Vec<u8>,
+    trainer_data: Option<Vec<u8>>,
+) -> Result<Box<dyn Mapper>, String> {
+    match (mapper_number, submapper_number) {
+        (0, 0) => Ok(Box::new(nrom::NROM::new(prg_rom, chr_rom, prg_ram, trainer_data)?)),
+        _ => Err(format!("Invalid mapper number: {mapper_number}"))
+    }
 }
 
 #[cfg(test)]

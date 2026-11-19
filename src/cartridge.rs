@@ -2,10 +2,9 @@
  * Implementation of the Cartridge struct
  */
 
-pub mod mapper;
 pub mod mappers;
 
-use mapper::Mapper;
+use mappers::Mapper;
 use mappers::choose_mapper;
 
 use crate::cartridge::{NametableArrangement::{Horizontal, Vertical}};
