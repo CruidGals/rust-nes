@@ -10,8 +10,6 @@ use bitflags::bitflags;
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct PPUCTRL: u8 {
-        const NAMETABLE_LOW           = 0b0000_0001;
-        const NAMETABLE_HIGH          = 0b0000_0010;
         const VRAM_ADDR_INC           = 0b0000_0100; // 0: add 1 ; 1: add 32
         const SPRITE_PATTERN_ADDR     = 0b0000_1000; // 0: $0000 ; 1: $1000
         const BACKGROUND_PATTERN_ADDR = 0b0001_0000; // 0: $0000 ; 1: $1000
@@ -138,6 +136,9 @@ impl PPU {
         match address {
             // PPUCTRL
             0x2000 => {
+                // Set nametable bytes
+                self.t = (self.t & 0x73FF) | u16::from(value & 0x02) << 10;
+
                 self.ppuctrl = PPUCTRL::from_bits(value).expect("Value written to PPUCTRL is invalid.");
                 self.data_bus = value;
                 Ok(())
