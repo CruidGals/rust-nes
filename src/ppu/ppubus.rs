@@ -10,6 +10,7 @@ pub struct PPUBus {
     vram: [u8; 2048], // 2KB to store the current nametable
     palette_ram: [u8; 256], // 256 bytes internal ram to store palette
     oam: [u8; 256], // 256 bytes (64 sprites * 4 bytes)
+    secondary_oam: [u8; 32], // 32 bytes (8 sprites * 4 bytes)
     cartridge: Rc<RefCell<Cartridge>>
 }
 
@@ -19,6 +20,7 @@ impl PPUBus {
             vram: [0; 2048],
             palette_ram: [0; 256],
             oam: [0; 256],
+            secondary_oam: [0xFF; 32],
             cartridge: cartridge
         }
     }
