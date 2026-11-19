@@ -1,4 +1,5 @@
 pub mod ppubus;
+pub mod rendering;
 
 use crate::ppu::ppubus::PPUBus;
 use bitflags::bitflags;
@@ -54,6 +55,11 @@ pub struct PPU {
     oamaddr: u8,
     read_buffer: u8, // Simulate the read buffer
 
+    /* Rendering attributes */
+    scanline: i32,
+    dot: i32,
+    cycle_count: i32,
+
     /* Wiring */
     data_bus: u8, // USED FOR CPU COMMUNICATION
     bus: PPUBus,
@@ -74,6 +80,11 @@ impl PPU {
             ppustatus: PPUSTATUS::VBLANK | PPUSTATUS::SPRITE_OVERFLOW,
             oamaddr: 0,
             read_buffer: 0,
+
+            /* Rendering attributes */
+            scanline: 0,
+            dot: 0,
+            cycle_count: 21, // Starts at 21 PPU cycles (7 cpu cycles * 3)
 
             /* Wiring */
             data_bus: 0,
