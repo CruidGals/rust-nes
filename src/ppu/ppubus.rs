@@ -109,4 +109,23 @@ impl PPUBus {
 
     /// Write to OAM using any address in u8 range
     pub fn write_oam(&mut self, address: u8, value: u8) -> () { self.oam[address as usize] = value; }
+
+    /// Read from secondary OAM
+    pub fn read_secondary_oam(&self, address: u8) -> Result<u8, String> { 
+        match address {
+            0..0x20 => Ok(self.secondary_oam[address as usize]),
+            _ => Err(format!("Address {:#X} is outside of secondary OAM range", address)),
+        }
+    }
+
+    /// Write to secondary OAM
+    pub fn write_secondary_oam(&mut self, address: u8, value: u8) -> Result<(), String> { 
+        match address {
+            0..0x20 => {
+                self.secondary_oam[address as usize] = value;
+                Ok(())
+            },
+            _ => Err(format!("Address {:#X} is outside of secondary OAM range", address)),
+        }
+    }
 }

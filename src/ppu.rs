@@ -1,6 +1,7 @@
 pub mod ppubus;
 pub mod background_rendering_unit;
 pub mod sprite_rendering_unit;
+pub mod memfetch;
 
 use crate::ppu::{background_rendering_unit::BackgroundRenderingUnit, ppubus::PPUBus, sprite_rendering_unit::SpriteRenderingUnit};
 use bitflags::bitflags;
@@ -57,11 +58,17 @@ pub struct PPU {
     read_buffer: u8, // Simulate the read buffer
 
     /* Rendering attributes */
-    scanline: i32,
-    dot: i32,
+    scanline: u16,
+    dot: u16,
     cycle_count: i32,
     background_rendering_unit: BackgroundRenderingUnit,
     sprite_rendering_units: [SpriteRenderingUnit; 8],
+
+    /* Sprite mem fetch latches */
+    pub sprite_empty: bool,
+    pub sprite_fine_y: u16,
+    pub sprite_tile_id: u8,
+    pub horizontal_flip: bool,
 
     /* Wiring */
     data_bus: u8, // USED FOR CPU COMMUNICATION
@@ -93,10 +100,25 @@ impl PPU {
             // Disregard the current units, will be replaced once sprite data is filled.
             sprite_rendering_units: [SpriteRenderingUnit::new(0, 0, 0, 0); 8],
 
+            /* Sprite specific mem fetch */
+            sprite_empty: false,
+            sprite_fine_y: 0,
+            sprite_tile_id: 0,
+            horizontal_flip: false,
+
             /* Wiring */
             data_bus: 0,
             bus: bus,
         })
+    }
+
+    pub fn tick() -> Result<(), String> {
+        // TODO: On scanline 20, on an odd frame it takes 340 dots instead of 341.
+        // The resting dot 341 is instead skipped on this frame
+
+
+
+        Ok(())
     }
 }
 

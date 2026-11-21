@@ -18,18 +18,18 @@ pub struct SpriteRenderingUnit {
     /// scanline. They get filled with zeros after being shifted because
     /// once you exhaust the sprite's pattern data it should only output
     /// backdrop data.
-    pattern_low_shift_reg: u8,
-    pattern_high_shift_reg: u8,
+    pub pattern_low_shift_reg: u8,
+    pub pattern_high_shift_reg: u8,
 
     /// Attribute data. Bits 0 and 1 represent which palette is chosen.
     /// Bit 2 represents whether this sprite has priority or not.
-    attribute_data: u8, // Only 3 bits are used
+    pub attribute_data: u8, // Only 3 bits are used
 
     /// The x-position of the sprite is set here. Every cycle, this down
     /// counts towards zero. Once it is at zero, the shift registers can
     /// start shifting. This perfectly times the unit to emit sprite pixels
     /// once found the sprite
-    down_counter: u8,
+    pub down_counter: u8,
 }
 
 impl SpriteRenderingUnit {
