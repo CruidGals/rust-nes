@@ -1,5 +1,6 @@
 pub mod ppubus;
-pub mod rendering;
+pub mod background_rendering_unit;
+pub mod sprite_rendering_unit;
 
 use crate::ppu::ppubus::PPUBus;
 use bitflags::bitflags;

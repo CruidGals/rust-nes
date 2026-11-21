@@ -1,6 +1,4 @@
-pub struct RenderingInternals {
-    enabled: bool,
-
+pub struct BackgroundRenderingUnit {
     // Pattern table latches and registers. These shift registers
     // shift left every dot. Low shift register gets filled with zeros
     // from the right, high shift register gets filled with ones.
@@ -37,11 +35,9 @@ pub struct RenderingInternals {
     pub nametable_latch: u8,
 }
 
-impl RenderingInternals {
+impl BackgroundRenderingUnit {
     pub fn new() -> Self {
         Self {
-            enabled: false,
-
             pattern_low_shift_reg: 0,
             pattern_low_latch: 0,
             pattern_high_shift_reg: 0,
@@ -57,8 +53,28 @@ impl RenderingInternals {
         }
     }
 
-    // Shift register specific
+    pub fn read(&mut self, fine_x: u8) -> u8 {
+        // Based on the fine_x, determine what bit we are reading.
+        let shift = 7 - fine_x;
+        let pattern_data_bits = 
+            (((self.pattern_high_shift_reg >> (shift + 8)) & 0x01) << 1) | 
+            ((self.pattern_low_shift_reg >> (shift + 8)) & 0x01);
+        let attribute_data_bits = 
+            (((self.attribute_top_shift_reg >> shift) & 0x01) << 1) | 
+            ((self.attribute_bot_shift_reg >> shift) & 0x01);
 
+        // Shift the registers
+        self.shift_pattern_registers();
+        self.shift_attribute_registers();
+        
+        // Return the four bit pixel: Bits 0 and 1 represnt pattern data bits,
+        // bits 2 and 3 represent palette selected
+        (attribute_data_bits << 2) | (pattern_data_bits as u8)
+    }
+}
+
+// Shift register specific
+impl BackgroundRenderingUnit {
     /// Shifts both pattern registers. Low pattern register gets filled 
     /// with zeros, high pattern register gets filled with ones.
     pub fn shift_pattern_registers(&mut self) -> () {
@@ -107,15 +123,14 @@ impl RenderingInternals {
             _ => Err(format!("Coarse bits are not given in bit form: coarse_x_bit: {} coarse_y_bit: {}", coarse_x_bit, coarse_y_bit))
         }
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn internal_fixture() -> RenderingInternals {
-        let mut internals = RenderingInternals::new();
+    fn internal_fixture() -> BackgroundRenderingUnit {
+        let mut internals = BackgroundRenderingUnit::new();
 
         internals.pattern_low_shift_reg  = 0b1001_1011_0111_1111;
         internals.pattern_high_shift_reg = 0b1011_1000_0010_0000;
@@ -209,5 +224,19 @@ mod tests {
         internals.load_attribute_bit_latch(1, 1).unwrap();
         assert_eq!(internals.attribute_bot_latch, 1);
         assert_eq!(internals.attribute_top_latch, 1);
+    }
+
+    #[test]
+    fn read_works() {
+        let mut internals = internal_fixture();
+        let fine_x = 3;
+
+        assert_eq!(internals.read(fine_x), 0b0111);
+        assert_eq!(internals.read(fine_x), 0b0011);
+        assert_eq!(internals.read(fine_x), 0b0000);
+
+        // Test switching fine_x from this point
+        assert_eq!(internals.read(fine_x - 2), 0b0011);
+        assert_eq!(internals.read(fine_x + 2), 0b1101);
     }
 }
