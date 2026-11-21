@@ -9,6 +9,7 @@
 //! or the other wins. Look at the wiki for correct multiplexer
 //! information.
 
+#[derive(Debug, Copy, Clone)]
 pub struct SpriteRenderingUnit {
     /// Picks the color in the palette that the sprite should use. 
     /// These registers only start shifting the once x-counter reaches

@@ -2,7 +2,7 @@ pub mod ppubus;
 pub mod background_rendering_unit;
 pub mod sprite_rendering_unit;
 
-use crate::ppu::ppubus::PPUBus;
+use crate::ppu::{background_rendering_unit::BackgroundRenderingUnit, ppubus::PPUBus, sprite_rendering_unit::SpriteRenderingUnit};
 use bitflags::bitflags;
 
 /***
@@ -40,7 +40,7 @@ bitflags! {
     }
 }
 
- #[derive(Debug)]
+#[derive(Debug)]
 pub struct PPU {
 
     /* PPU Internal registers */
@@ -60,6 +60,8 @@ pub struct PPU {
     scanline: i32,
     dot: i32,
     cycle_count: i32,
+    background_rendering_unit: BackgroundRenderingUnit,
+    sprite_rendering_units: [SpriteRenderingUnit; 8],
 
     /* Wiring */
     data_bus: u8, // USED FOR CPU COMMUNICATION
@@ -86,6 +88,10 @@ impl PPU {
             scanline: 0,
             dot: 0,
             cycle_count: 21, // Starts at 21 PPU cycles (7 cpu cycles * 3)
+            background_rendering_unit: BackgroundRenderingUnit::new(),
+
+            // Disregard the current units, will be replaced once sprite data is filled.
+            sprite_rendering_units: [SpriteRenderingUnit::new(0, 0, 0, 0); 8],
 
             /* Wiring */
             data_bus: 0,

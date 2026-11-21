@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct BackgroundRenderingUnit {
     // Pattern table latches and registers. These shift registers
     // shift left every dot. Low shift register gets filled with zeros
