@@ -20,14 +20,14 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     run_gui()?;
 
     // Try using test rom
-    // let rom = std::fs::read("roms/nestest.nes")?;
-    // let mut nes = power_up(&rom)?;
+    let rom = std::fs::read("roms/nestest.nes")?;
+    let mut nes = power_up(&rom)?;
     
-    // // Setup the nestest
-    // nes.cpu.pc = 0xC000;
-    // while nes.cpu.instructions_ran < 8991 {
-    //     nes.cpu.tick()?;
-    // }
+    // Setup the nestest
+    nes.cpu.pc = 0xC000;
+    while nes.cpu.instructions_ran < 8991 {
+        nes.cpu.tick()?;
+    }
 
     Ok(())
 }
