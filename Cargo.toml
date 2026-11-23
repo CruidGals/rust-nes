@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 bitflags = "2.13.2"
 automod = "1.0"
+eframe = "0.37"
