@@ -2,6 +2,7 @@ pub mod ppubus;
 pub mod background_rendering_unit;
 pub mod sprite_rendering_unit;
 pub mod memfetch;
+pub mod rendering;
 
 use crate::ppu::{background_rendering_unit::BackgroundRenderingUnit, ppubus::PPUBus, sprite_rendering_unit::SpriteRenderingUnit};
 use bitflags::bitflags;
