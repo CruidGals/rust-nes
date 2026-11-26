@@ -30,10 +30,13 @@ pub struct SpriteRenderingUnit {
     /// start shifting. This perfectly times the unit to emit sprite pixels
     /// once found the sprite
     pub down_counter: u8,
+
+    /// Flag to help determine if a sprite is Primary OAM sprite zero
+    pub is_zero_sprite: bool,
 }
 
 impl SpriteRenderingUnit {
-    pub fn new(pattern_low: u8, pattern_high: u8, attribute_data: u8, x_pos: u8) -> Self {
+    pub fn new(pattern_low: u8, pattern_high: u8, attribute_data: u8, x_pos: u8, is_zero_sprite: bool) -> Self {
         // If the data being passed in here is not right, then that represents
         // a real error in code or progrma
         if attribute_data >> 3 > 0 {
@@ -46,6 +49,8 @@ impl SpriteRenderingUnit {
 
             attribute_data: attribute_data,
             down_counter: x_pos,
+
+            is_zero_sprite: is_zero_sprite,
         }
     }
 }
@@ -90,7 +95,7 @@ mod tests {
         let down_counter = 123;
 
         let mut unit = SpriteRenderingUnit::new(
-            pattern_low, pattern_high, attribute_data, down_counter
+            pattern_low, pattern_high, attribute_data, down_counter, false
         );
 
         assert_eq!(unit.pattern_low_shift_reg, 0b1101_0101);

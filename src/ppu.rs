@@ -26,7 +26,7 @@ bitflags! {
     pub struct PPUMASK: u8 {
         const GREYSCALE            = 0b0000_0001; // 1: grayscale on
         const BACKGROUND_LEFT_SHOW = 0b0000_0010; // 1: show background on left 8 pixels of screen
-        const SPIRTE_LEFT_SHOW     = 0b0000_0100; // 1: show sprites on left 8 pixels of screen
+        const SPRITE_LEFT_SHOW     = 0b0000_0100; // 1: show sprites on left 8 pixels of screen
         const BACKGROUND_RENDERING = 0b0000_1000; // 1: enable background rendering
         const SPRITE_RENDERING     = 0b0001_0000; // 1: enable sprite rendering
         const EMPHASIZE_RED        = 0b0010_0000; // 1: emphasize red coloring
@@ -99,7 +99,7 @@ impl PPU {
             background_rendering_unit: BackgroundRenderingUnit::new(),
 
             // Disregard the current units, will be replaced once sprite data is filled.
-            sprite_rendering_units: [SpriteRenderingUnit::new(0, 0, 0, 0); 8],
+            sprite_rendering_units: [SpriteRenderingUnit::new(0, 0, 0, 0, false); 8],
 
             /* Sprite specific mem fetch */
             sprite_empty: false,
